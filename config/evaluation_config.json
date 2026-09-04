@@ -1,0 +1,69 @@
+{
+    "metrics": {
+        "accuracy": true,
+        "precision": true,
+        "recall": true,
+        "f1_score": true,
+        "auc_roc": true,
+        "confusion_matrix": true,
+        "class_report": true
+    },
+    "regression": {
+        "enabled": true,
+        "mse": true,
+        "rmse": true,
+        "mae": true,
+        "r2_score": true,
+        "explained_variance": true,
+        "median_absolute_error": true
+    },
+    "visualization": {
+        "confusion_matrix": true,
+        "roc_curve": true,
+        "precision_recall_curve": true,
+        "feature_importance": true,
+        "attention_maps": {
+            "enabled": true,
+            "top_k": 10,
+            "threshold": 0.5,
+            "aggregation": "mean"
+        },
+        "embeddings": {
+            "enabled": true,
+            "method": "tsne",
+            "perplexity": 30,
+            "n_components": 2
+        }
+    },
+    "output": {
+        "save_predictions": true,
+        "save_attention_weights": true,
+        "save_feature_importance": true,
+        "output_format": ["json", "csv"]
+    },
+    "interpretability": {
+        "shap": {
+            "enabled": true,
+            "n_samples": 100,
+            "background_samples": 50
+        },
+        "important_snps": {
+            "enabled": true,
+            "top_k": 50,
+            "method": "attention"
+        }
+    },
+    "significance_tests": {
+        "permutation_test": {
+            "enabled": true,
+            "n_permutations": 100,
+            "significance_level": 0.05
+        }
+    },
+    "cross_validation": {
+        "enabled": false,
+        "n_splits": 5,
+        "shuffle": false,
+        "stratify": false
+    }
+}

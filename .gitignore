@@ -1,0 +1,32 @@
+# Data
+data/
+
+# Sensitive / species-specific evaluation data
+evaluation/blackcarp/
+
+# Training outputs
+output/
+logs0/
+runs/
+checkpoints/
+wandb/
+
+# Model weights
+*.pt
+*.pth
+*.ckpt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# Logs / temp
+*.log
+*.tmp
+.DS_Store
+causal-conv1d/

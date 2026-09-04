@@ -1,0 +1,142 @@
+{
+    "random_seed": 42,
+    "precision": "float16",
+    "embedding": {
+        "dim": 32,
+        "dropout_rate": 0.1,
+        "position_encoding": false,
+        "normalization": false
+    },
+    "GFI_FormerBLOCKS": {
+        "num_blocks": 2,
+        "blocks": [
+            {
+                "name": "SNP_Transformer",
+                "encoder": {
+                    "num_layers": 4,
+                    "attention": {
+                        "type": "probabilistic",
+                        "num_heads": 4,
+                        "d_attention": 8,
+                        "dropout_rate": 0.1,
+                        "temperature": 1.0
+                    },
+                    "ff_dim": 64,
+                    "layer_dropout": 0.1,
+                    "add_norm": true
+                },
+                "decoder": {
+                    "num_layers": 1,
+                    "attention": {
+                        "type": "probabilistic_cross",
+                        "num_heads": 4,
+                        "d_attention": 32,
+                        "dropout_rate": 0.1,
+                        "temperature": 1.0
+                    },
+                    "ff_dim": 256,
+                    "layer_dropout": 0.1,
+                    "add_norm": true
+                },
+                "pooling": {
+                    "type": "self_attention",
+                    "num_query_vectors": 1,
+                    "query_dim": 128
+                }
+            },
+            {
+                "name": "Gene_Transformer",
+                "encoder": {
+                    "num_layers": 16,
+                    "attention": {
+                        "type": "probabilistic",
+                        "num_heads": 16,
+                        "d_attention": 8,
+                        "dropout_rate": 0.1,
+                        "temperature": 1.0
+                    },
+                    "ff_dim": 256,
+                    "layer_dropout": 0.1,
+                    "add_norm": true
+                },
+                "decoder": {
+                    "num_layers": 1,
+                    "attention": {
+                        "type": "probabilistic_cross",
+                        "num_heads": 16,
+                        "d_attention": 16,
+                        "dropout_rate": 0.1,
+                        "temperature": 1.0
+                    },
+                    "ff_dim": 512,
+                    "layer_dropout": 0.1,
+                    "add_norm": true
+                },
+                "pooling": {
+                    "type": "self_attention",
+                    "num_query_vectors": 4,
+                    "query_dim": 256
+                }
+            }
+        ]
+    },
+    "output_layer": {
+        "phenotype_dim": 2,
+        "phenotype_name": [
+            "BW",
+            "LE"
+        ],
+        "hidden_dims": [
+            128
+        ],
+        "activation": "relu",
+        "dropout_rate": 0.1
+    },
+    "loss_config": {
+        "primary_loss": {
+            "type": "cross_entropy",
+            "label_smoothing": 0.1,
+            "reduction": "mean"
+        },
+        "auxiliary_losses": {
+            "distribution_kl": {
+                "enabled": true,
+                "weight": 0.1,
+                "temperature": 1.0
+            },
+            "l1_regularization": {
+                "enabled": false,
+                "weight": 0.01
+            }
+        }
+    },
+    "phenotype": {
+        "distribution": "gaussian",
+        "normalize": true,
+        "scaling_method": "standard"
+    },
+    "training": {
+        "batch_size": 64,
+        "epochs": 100,
+        "learning_rate": 0.001,
+        "optimizer": {
+            "type": "adam",
+            "beta1": 0.9,
+            "beta2": 0.999,
+            "epsilon": 1e-08
+        },
+        "scheduler": {
+            "type": "cosine",
+            "warmup_steps": 1000
+        },
+        "mixed_precision": {
+            "enabled": true,
+            "dtype": "float16",
+            "dynamic_scaling": true
+        }
+    },
+    "regularization": {
+        "weight_decay": 0.01,
+        "gradient_clip_norm": 1.0
+    }
+}

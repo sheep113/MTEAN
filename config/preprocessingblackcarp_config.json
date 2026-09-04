@@ -1,0 +1,85 @@
+{
+    "file_processing": {
+        "input_format": "plink",
+        "input_directory": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp",
+        "input_plinkfile": "filtered_snp_keep",
+        "input_refergenome": "",
+        "input_Phenfile": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp/phongraph_new.tsv",
+        "output_directory": "output/blackcarp",
+        "output_file": "blackcarp_preprocessed 398w",
+        "n_jobs": 180,
+        "Samples_batch_size": 300,
+        "SNPs_batch_size": 50000
+    },
+    "snp_filtering": {
+        "geno": {
+            "enable": false,
+            "threshold": 0.02
+        },
+        "maf": {
+            "enable": false,
+            "threshold": 0.3
+        },
+        "hwe": {
+            "enable": false,
+            "threshold": 1e-10
+        },
+        "mind": {
+            "enable": false,
+            "threshold": 0.2
+        },
+        "output_prefix": "qc",
+        "threads": 32,
+        "memory": 256000,
+        "allow_no_sex": true,
+        "autosome_only": true,
+        "extra_commands": ""
+    },
+    "ld_pruning": {
+        "enable": false,
+        "window_size": 1000,
+        "step_size": 100,
+        "default_r2": 0.3,
+        "gene_regions": {
+            "enable": true,
+            "bed_file": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/genes_with_name.bed",
+            "genic_r2": 0.2,
+            "nongenic_r2": 0.1
+        }
+    },
+    "mic_analysis": {
+        "enable": false,
+        "alpha": 0.6,
+        "c": 15,
+        "num_threads": 32,
+        "chunk_size": 1000,
+        "min_samples": 10,
+        "MIC_output_file": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/output/blackcarp/MIC.bimmic"
+    },
+    "missing_value_handling": {
+        "enable": false,
+        "method": "mode"
+    },
+    "data_split": {
+        "enable": false,
+        "train_ratio": 0.7,
+        "valid_ratio": 0.15,
+        "test_ratio": 0.15,
+        "random_seed": 42,
+        "stratify": false,
+        "cross_validation": {
+            "enable": true,
+            "n_splits": 5,
+            "shuffle": true,
+            "cv_random_seed": 42
+        }
+    },
+    "model_input": {
+        "partition": {
+            "enable": true,
+            "max_size": 1000,
+            "method": "adaptive",
+            "min_size": 50
+        }
+    }
+}

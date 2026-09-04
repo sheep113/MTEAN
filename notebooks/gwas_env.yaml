@@ -1,0 +1,27 @@
+name: gwas_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # --- 1. 核心 R 环境 ---
+  - r-base=4.3            # 核心 R 语言
+  
+  # --- 2. 基础统计包 (修复报错的关键) ---
+  - r-mass                # [关键补全] rMVP 依赖此包进行统计计算
+  
+  # --- 3. rMVP 的底层 C++ 依赖 (预装这些可以避免 99% 的编译错误) ---
+  - r-rcpp                # C++ 接口
+  - r-rcpparmadillo       # 线性代数库 (rMVP 核心)
+  - r-rcppeigen           # [新增] 刚才你编译很久的包，直接装现成的
+  - r-rcppprogress        # [新增] 进度条依赖，直接装现成的
+  - r-bh                  # Boost Headers
+  - r-bigmemory           # 处理大规模数据
+  
+  # --- 4. 工具包 ---
+  - r-data.table          # 数据读取加速
+  - r-matrix              # 稀疏矩阵支持
+  
+  # --- 5. 编译工具链 (Linux 必备) ---
+  - gxx_linux-64          # C++ 编译器
+  - make                  # 编译构建工具
+  - libgomp               # 并行计算支持 (OpenMP)

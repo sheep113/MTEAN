@@ -1,0 +1,136 @@
+{
+  "random_seed": 42,
+  "precision": "float32",
+  "embedding": {
+    "input_type": "SNP",
+    "input_dims": 10,
+    "Block_length": 32,
+    "num_chromosomes": 10,
+    "chromosome_embedding_dim": 2,
+    "CNN_Kernel": [
+      3,
+      5,
+      7,
+      9,
+      11
+    ],
+    "CNN_Dilation": [
+      1,
+      2,
+      3
+    ],
+    "CNN_layers": 1,
+    "dropout_rate": 0.3,
+    "position_encoding": true,
+    "normalization": false,
+    "activation": "gelu",
+    "aux_ffn_expansion_factor": 2
+  },
+  "GFI_FormerBLOCKS": {
+    "num_blocks": 1,
+    "blocks": [
+      {
+        "name": "GFI_Block0",
+        "context_length": 32,
+        "encoder": {
+          "num_layers": 1,
+          "attention": {
+            "type": "flash_attention",
+            "hidden_dims": 64,
+            "num_heads": 4,
+            "dropout_rate": 0.1,
+            "temperature": 1.0
+          },
+          "ffn_sharing": false,
+          "ffn_expansion_factor": 2
+        },
+        "decoder": {
+          "num_layers": 1,
+          "cross_attention": {
+            "type": "standard",
+            "head_dims": 16,
+            "num_heads": 4,
+            "dropout_rate": 0.1,
+            "temperature": 1.0,
+            "v_projection_source": "encoder"
+          },
+          "MOE": {
+            "enabled": true,
+            "experts_dims": 64,
+            "num_experts": 2,
+            "exports_expansion_factor": 4,
+            "exports_sharing": false,
+            "capacity_factor": 1.0,
+            "dropout_rate": 0.1,
+            "aux_ffn_expansion_factor": 2
+          },
+          "pooling": {
+            "type": "self_attention",
+            "head_dims": 64,
+            "num_heads": 2,
+            "ffn_expansion_factor": 2,
+            "dropout_rate": 0.1,
+            "temperature": 1.0
+          }
+        }
+      }
+    ]
+  },
+  "output_layer": {
+    "phenotype_dim": 2,
+    "phenotype_name": [
+      "BW",
+      "LE"
+    ],
+    "hidden_expansion_dims": 4,
+    "activation": "tanh",
+    "dropout_rate": 0.6
+  },
+  "loss_config": {
+    "primary_loss": {
+      "enabled": false,
+      "type": "mse",
+      "reduction": "mean",
+      "eps": 1e-08,
+      "gamma": 1.0
+    },
+    "auxiliary_losses": {
+      "Deep_Supervision": {
+        "enabled": false,
+        "type": "pearson",
+        "weight": [
+          0.01,
+          0.01,
+          0.01
+        ],
+        "pearson_factor": 1,
+        "reduction": "mean"
+      },
+      "PWCosSim": {
+        "enabled": true,
+        "weight": [
+          0.1,
+          1
+        ],
+        "PWCosSim_factor": 1,
+        "reduction": "mean",
+        "eps": 1e-08,
+        "gamma": 1.0
+      },
+      "l1_regularization": {
+        "enabled": false,
+        "weight": 1e-08
+      },
+      "correlation": {
+        "enabled": false,
+        "weight": 0.01
+      }
+    }
+  },
+  "phenotype": {
+    "distribution": "gaussian",
+    "normalize": false,
+    "scaling_method": "standard",
+    "target_log_variance": 0
+  }
+}

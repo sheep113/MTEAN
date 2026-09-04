@@ -1,0 +1,51 @@
+name: mlenv
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  # Python Stack
+  - python=3.10
+  - setuptools>=61.0.0
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - numba
+  - h5py
+  - matplotlib
+  - tqdm
+  - pyyaml
+  - psutil
+  - intervaltree
+  # R Stack
+  - r-base         
+  - r-pcadapt       
+  - r-ggplot2       
+  - r-data.table    
+  - r-robustbase    
+  - r-bigparallelr
+  - r-viridis
+  - r-jsonlite
+  - r-scatterplot3d
+  # Pip Stack  
+  - pip
+  - pip:
+      - --index-url https://download.pytorch.org/whl/cu128
+      - --extra-index-url https://pypi.org/simple
+      - "torch==2.8.0+cu128"  
+      - "torchvision==0.23.0+cu128"  
+      - "torchmetrics>=1.6.0"
+      - "pytorch-lightning>=2.4.0"
+      - "tensorboard>=2.18.0"
+      - "einops>=0.8.0"
+      - "transformers>=4.45.2"
+      - "triton>=3.3.0"  
+      - "flash_attn>=2.7.4"
+      - "xformers>=0.0.28.post3"
+      - "causal_conv1d @ git+https://github.com/Dao-AILab/causal-conv1d.git@main"      
+      - "mamba_ssm @ git+https://github.com/state-spaces/mamba.git@main"
+      - "entmax>=1.3"
+      - "torchviz>=0.0.3"
+      - "Pgenlib>=0.93.0"
+      - "lion-pytorch>=0.2.3"
+      - "pot==0.9.4"
