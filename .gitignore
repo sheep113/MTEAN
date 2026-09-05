@@ -1,5 +1,5 @@
 # Data
-data/
+/data/
 
 # Sensitive / species-specific evaluation data
 evaluation/blackcarp/
