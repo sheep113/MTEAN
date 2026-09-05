@@ -53,8 +53,8 @@ def load_test_data():
 
 def get_norm_stats():
     """计算训练验证集表型的均值和标准差（与训练时标准化一致）"""
-    pheno = pd.read_csv("data/blackcarp/phongraph_new.tsv", sep='\t').set_index('sample_id')
-    with open("data/blackcarp/trainval_samples.txt") as f:
+    pheno = pd.read_csv("data/blackcarp499/phongraph_new.tsv", sep='\t').set_index('sample_id')
+    with open("data/blackcarp499/trainval_samples.txt") as f:
         trainval_ids = [line.strip() for line in f if line.strip()]
     pheno_tv = pheno.loc[trainval_ids, ['BW','LE']]
     mean = pheno_tv.mean().values.astype(np.float32)

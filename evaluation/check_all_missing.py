@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 
 # 配置路径
-PLINK_PREFIX = "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp/filtered_snp_keep"
-CAND_BW = "data/blackcarp/fixed_candidates_BW.txt"
-CAND_LE = "data/blackcarp/fixed_candidates_LE.txt"
+PLINK_PREFIX = "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499/filtered_snp_keep"
+CAND_BW = "data/blackcarp499/fixed_candidates_BW.txt"
+CAND_LE = "data/blackcarp499/fixed_candidates_LE.txt"
 
 def read_bed_snps(bed_path, n_samples, snp_indices):
     """读取指定索引的 SNP 基因型，返回 (n_samples, len(snp_indices))"""

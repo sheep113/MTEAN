@@ -1,49 +1,172 @@
 #!/usr/bin/env python3
 """
-生成指定种子的 5 折交叉验证划分文件，基于训练验证池样本。
-读取 trainval_samples.txt（或 train_samples.txt），输出 cv_splits_{seed}.csv。
+快速生成 trainval 样本的 5-fold CV 划分。
+
+用法：
+    python training/data/generate_cv_splits.py 1
+    python training/data/generate_cv_splits.py 1 2 3
+
+输入：
+    data/blackcarp499/trainval_samples.txt
+
+输出：
+    data/blackcarp499/cv_splits_1.csv
+    data/blackcarp499/cv_splits_2.csv
+    ...
 """
 
-import os, sys
-import numpy as np
-import pandas as pd
+import csv
+import sys
+from pathlib import Path
+
 from sklearn.model_selection import KFold
 
-OUT_DIR = "data/blackcarp"
+
+DATA_DIR = Path("data/blackcarp499")
+TRAINVAL_FILE = DATA_DIR / "trainval_samples.txt"
+N_FOLDS = 5
+
+
+def load_samples():
+    if not TRAINVAL_FILE.exists():
+        raise FileNotFoundError(
+            f"未找到: {TRAINVAL_FILE}"
+        )
+
+    with open(TRAINVAL_FILE) as f:
+        samples = [
+            line.strip()
+            for line in f
+            if line.strip()
+        ]
+
+    # 检查重复 ID
+    if len(samples) != len(set(samples)):
+        raise RuntimeError(
+            "trainval_samples.txt 中存在重复样本 ID"
+        )
+
+    return samples
+
+
+def generate_one_seed(samples, seed):
+    kf = KFold(
+        n_splits=N_FOLDS,
+        shuffle=True,
+        random_state=seed
+    )
+
+    out_path = (
+        DATA_DIR /
+        f"cv_splits_{seed}.csv"
+    )
+
+    rows = []
+
+    print(f"\n========== seed {seed} ==========")
+
+    for fold, (train_idx, val_idx) in enumerate(
+        kf.split(samples)
+    ):
+        train_ids = [
+            samples[i]
+            for i in train_idx
+        ]
+
+        val_ids = [
+            samples[i]
+            for i in val_idx
+        ]
+
+        # 安全检查
+        overlap = (
+            set(train_ids)
+            &
+            set(val_ids)
+        )
+
+        if overlap:
+            raise RuntimeError(
+                f"seed={seed}, fold={fold} "
+                f"train/val 出现重叠"
+            )
+
+        print(
+            f"fold {fold}: "
+            f"train={len(train_ids)}, "
+            f"val={len(val_ids)}"
+        )
+
+        rows.extend(
+            [
+                [fold, sid, "train"]
+                for sid in train_ids
+            ]
+        )
+
+        rows.extend(
+            [
+                [fold, sid, "val"]
+                for sid in val_ids
+            ]
+        )
+
+    with open(
+        out_path,
+        "w",
+        newline=""
+    ) as f:
+        writer = csv.writer(f)
+
+        writer.writerow(
+            [
+                "fold",
+                "sample_id",
+                "split"
+            ]
+        )
+
+        writer.writerows(rows)
+
+    print(
+        f"已生成: {out_path}"
+    )
+
 
 def main():
     if len(sys.argv) < 2:
-        print("用法: python generate_cv_splits.py <seed>")
+        print(
+            "用法:\n"
+            "  python training/data/"
+            "generate_cv_splits.py 1\n"
+            "或:\n"
+            "  python training/data/"
+            "generate_cv_splits.py 1 2 3"
+        )
         sys.exit(1)
-    seed = int(sys.argv[1])
 
-    # 读取训练验证池样本（已包含全部训练评估样本）
-    trainval_file = os.path.join(OUT_DIR, "trainval_samples.txt")
-    if not os.path.exists(trainval_file):
-        raise FileNotFoundError(f"未找到 {trainval_file}")
+    seeds = [
+        int(x)
+        for x in sys.argv[1:]
+    ]
 
-    with open(trainval_file) as f:
-        trainval_samples = [line.strip() for line in f if line.strip()]
+    samples = load_samples()
 
-    n = len(trainval_samples)
-    indices = np.arange(n)
-    np.random.seed(seed)
-    np.random.shuffle(indices)
+    print(
+        f"trainval 样本数: "
+        f"{len(samples)}"
+    )
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
-    rows = []
-    for fold_idx, (train_loc, val_loc) in enumerate(kf.split(indices)):
-        fold_train = [trainval_samples[i] for i in train_loc]
-        fold_val   = [trainval_samples[i] for i in val_loc]
-        for sid in fold_train:
-            rows.append((fold_idx, sid, 'train'))
-        for sid in fold_val:
-            rows.append((fold_idx, sid, 'val'))
+    for seed in seeds:
+        generate_one_seed(
+            samples,
+            seed
+        )
 
-    df = pd.DataFrame(rows, columns=['fold', 'sample_id', 'split'])
-    out_path = os.path.join(OUT_DIR, f"cv_splits_{seed}.csv")
-    df.to_csv(out_path, index=False)
-    print(f"已生成: {out_path}")
+    print(
+        "\n全部 CV 划分生成完成。"
+    )
+
 
 if __name__ == "__main__":
     main()

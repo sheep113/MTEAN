@@ -9,7 +9,7 @@ for seed in "${SEEDS[@]}"; do
     echo "============================================"
 
     # 1. 生成该种子的交叉验证划分文件（如果不存在）
-    if [ ! -f "data/blackcarp/cv_splits_${seed}.csv" ]; then
+    if [ ! -f "data/blackcarp499/cv_splits_${seed}.csv" ]; then
         echo ">>> 生成种子 ${seed} 的交叉验证划分..."
         python3 training/data/generate_cv_splits.py ${seed}
     else

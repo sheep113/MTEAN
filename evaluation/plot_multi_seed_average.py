@@ -39,8 +39,8 @@ os.chdir(ROOT)
 TRAINVAL_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_trainval.h5"
 TEST_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_test.h5"
 MODEL_CONFIG = "config/model_config_blackcarp.json"
-PHENO_FILE = "data/blackcarp/phongraph_new.tsv"
-TRAINVAL_SAMPLES = "data/blackcarp/trainval_samples.txt"
+PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
+TRAINVAL_SAMPLES = "data/blackcarp499/trainval_samples.txt"
 OUT_DIR = "evaluation/blackcarp/test_results"
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -90,7 +90,7 @@ def main():
         x_tv = torch.from_numpy(np.transpose(geno_tv_seed, (1,0,2))).float()
         x_test = torch.from_numpy(np.transpose(geno_test_seed, (1,0,2))).float()
 
-        cv = pd.read_csv(f"data/blackcarp/cv_splits_{seed}.csv")
+        cv = pd.read_csv(f"data/blackcarp499/cv_splits_{seed}.csv")
         tv_id_to_idx = {sid:i for i,sid in enumerate(tv_ids)}
 
         for fold in FOLDS:

@@ -7,7 +7,7 @@ from pathlib import Path
 FULL_H5 = "output/blackcarp/blackcarp_preprocessed 398w.h5"
 SNP_INFO = "output/blackcarp/blackcarp_preprocessed 398w"
 OUT_DIR = "output/blackcarp"
-SNP_LIST = "data/blackcarp/chip_candidates_seed43.txt"   # 修改为你的列表路径
+SNP_LIST = "data/blackcarp499/chip_candidates_seed43.txt"   # 修改为你的列表路径
 
 def main():
     with open(SNP_LIST) as f:

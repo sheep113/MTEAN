@@ -1,10 +1,10 @@
 {
     "file_processing": {
         "input_format": "plink",
-        "input_directory": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp",
+        "input_directory": "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499",
         "input_plinkfile": "filtered_snp_keep",
         "input_refergenome": "",
-        "input_Phenfile": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp/phongraph_new.tsv",
+        "input_Phenfile": "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499/phongraph_new.tsv",
         "output_directory": "output/blackcarp",
         "output_file": "blackcarp_preprocessed 398w",
         "n_jobs": 180,

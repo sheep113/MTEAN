@@ -18,8 +18,8 @@ os.chdir(ROOT)
 
 TEST_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_test.h5"
 MODEL_CONFIG = "config/model_config_blackcarp.json"
-PHENO_FILE = "data/blackcarp/phongraph_new.tsv"
-TRAINVAL_SAMPLES = "data/blackcarp/trainval_samples.txt"
+PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
+TRAINVAL_SAMPLES = "data/blackcarp499/trainval_samples.txt"
 OUTPUT_DIR = "evaluation/blackcarp/test_results"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 

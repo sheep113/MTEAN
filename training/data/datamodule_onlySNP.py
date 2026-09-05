@@ -684,7 +684,7 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
         # --- 交叉验证划分（优先使用外部 CSV 文件） ---
         if self.use_cv_folds:
             import pandas as pd
-            cv_file = f"data/blackcarp/cv_splits_{self.seed}.csv"
+            cv_file = f"data/blackcarp499/cv_splits_{self.seed}.csv"
             if Path(cv_file).exists():
                 self.logger.info(f"从外部文件加载交叉验证划分: {cv_file}")
                 cv = pd.read_csv(cv_file)

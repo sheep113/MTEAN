@@ -22,11 +22,11 @@ ROOT = Path.cwd()
 os.chdir(ROOT)
 
 # 配置
-PLINK_PREFIX = "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/blackcarp/filtered_snp_keep"
-FIXED_CAND = "data/blackcarp/fixed_candidates.txt"
-PHENO_FILE = "data/blackcarp/phongraph_new.tsv"
-TRAINVAL_SAMPLES = "data/blackcarp/trainval_samples.txt"
-TEST_SAMPLES = "data/blackcarp/test_samples.txt"
+PLINK_PREFIX = "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499/filtered_snp_keep"
+FIXED_CAND = "data/blackcarp499/fixed_candidates.txt"
+PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
+TRAINVAL_SAMPLES = "data/blackcarp499/trainval_samples.txt"
+TEST_SAMPLES = "data/blackcarp499/test_samples.txt"
 OUT_DIR = "evaluation/blackcarp/ml_models/test_results"
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -106,7 +106,7 @@ def main():
 
     # 循环种子
     for seed in SEEDS:
-        cv_file = f"data/blackcarp/cv_splits_{seed}.csv"
+        cv_file = f"data/blackcarp499/cv_splits_{seed}.csv"
         cv = pd.read_csv(cv_file)
         print(f"\n处理种子 {seed} ...")
 

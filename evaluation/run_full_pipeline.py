@@ -23,8 +23,8 @@ warnings.filterwarnings('ignore')
 SEEDS = [1, 2, 3]
 FOLDS = [0, 1, 2, 3, 4]
 TRAINVAL_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_trainval.h5"
-PHENO_FILE = "data/blackcarp/phongraph_new.tsv"
-TRAINVAL_SAMPLES_FILE = "data/blackcarp/trainval_samples.txt"
+PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
+TRAINVAL_SAMPLES_FILE = "data/blackcarp499/trainval_samples.txt"
 OUT_BASE = "evaluation/blackcarp"
 ENRICH_DIR = os.path.join(OUT_BASE, "enrichment_results")
 os.makedirs(ENRICH_DIR, exist_ok=True)
@@ -244,7 +244,7 @@ def main():
             if not files:
                 continue
             weights = np.concatenate([np.load(f) for f in files], axis=0)  # [N_val,2,keep]
-            cv_file = f"data/blackcarp/cv_splits_{seed}.csv"
+            cv_file = f"data/blackcarp499/cv_splits_{seed}.csv"
             cv = pd.read_csv(cv_file)
             val_ids = cv[(cv['fold'] == fold) & (cv['split'] == 'val')]['sample_id'].tolist()
             if weights.shape[0] != len(val_ids):
@@ -310,7 +310,7 @@ def main():
     print("\n✅ 全部完成！结果保存在:", ENRICH_DIR)
     # 验证 Top SNP 是否都在固定候选集中
     print("\n[7] 验证 Top SNP 与固定候选集的匹配情况...")
-    with open("data/blackcarp/fixed_candidates.txt") as f:
+    with open("data/blackcarp499/fixed_candidates.txt") as f:
         fixed_set = set(line.strip() for line in f if line.strip())
 
     for exp_idx in [0, 1]:

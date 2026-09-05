@@ -16,12 +16,12 @@ from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error, r2_score
 
 # 配置
-GENO_CSV = "data/blackcarp/geno_fixed_for_python.csv"          # 基因型矩阵 CSV（行名样本ID，列名SNP ID）
-FIXED_CAND_BW = "data/blackcarp/fixed_candidates_BW.txt"
-FIXED_CAND_LE = "data/blackcarp/fixed_candidates_LE.txt"
-PHENO_FILE = "data/blackcarp/phongraph_new.tsv"
-TRAINVAL_SAMPLES = "data/blackcarp/trainval_samples.txt"
-TEST_SAMPLES = "data/blackcarp/test_samples.txt"
+GENO_CSV = "data/blackcarp499/geno_fixed_for_python.csv"          # 基因型矩阵 CSV（行名样本ID，列名SNP ID）
+FIXED_CAND_BW = "data/blackcarp499/fixed_candidates_BW.txt"
+FIXED_CAND_LE = "data/blackcarp499/fixed_candidates_LE.txt"
+PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
+TRAINVAL_SAMPLES = "data/blackcarp499/trainval_samples.txt"
+TEST_SAMPLES = "data/blackcarp499/test_samples.txt"
 OUT_DIR = "evaluation/blackcarp/ml_models/test_results"
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -69,7 +69,7 @@ def main():
     all_results = []
 
     for seed in SEEDS:
-        cv_file = f"data/blackcarp/cv_splits_{seed}.csv"
+        cv_file = f"data/blackcarp499/cv_splits_{seed}.csv"
         cv = pd.read_csv(cv_file)
         print(f"\n处理种子 {seed} ...")
 
