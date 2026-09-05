@@ -30,3 +30,7 @@ __pycache__/
 *.tmp
 .DS_Store
 causal-conv1d/
+
+# Local backup files
+*.bak_*
+path_backup_*/
