@@ -5,8 +5,8 @@
         "input_plinkfile": "filtered_snp_keep",
         "input_refergenome": "",
         "input_Phenfile": "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499/phongraph_new.tsv",
-        "output_directory": "output/blackcarp",
-        "output_file": "blackcarp_preprocessed 398w",
+        "output_directory": "data/blackcarp499/processed",
+        "output_file": "blackcarp_full_398w",
         "n_jobs": 180,
         "Samples_batch_size": 300,
         "SNPs_batch_size": 50000
@@ -42,7 +42,7 @@
         "default_r2": 0.3,
         "gene_regions": {
             "enable": true,
-            "bed_file": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/data/genes_with_name.bed",
+            "bed_file": "",
             "genic_r2": 0.2,
             "nongenic_r2": 0.1
         }
@@ -54,7 +54,7 @@
         "num_threads": 32,
         "chunk_size": 1000,
         "min_samples": 10,
-        "MIC_output_file": "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/output/blackcarp/MIC.bimmic"
+        "MIC_output_file": "data/blackcarp499/MIC.bimmic"
     },
     "missing_value_handling": {
         "enable": false,

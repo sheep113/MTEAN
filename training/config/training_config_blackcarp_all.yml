@@ -44,7 +44,7 @@ data:
   pin_memory: true
   shuffle: true
   include_position_embedding: true
-  data_path: "/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/output/blackcarp/blackcarp_preprocessed_full.h5"  # 预处理后数据存放路径
+  data_path: "/home/data/biofish/yjn/workspace/MTEAN/data/blackcarp499/processed/blackcarp_selected_full.h5"  # legacy: 全样本 selected SNP H5
   normalize_position: false # 是否对位置编码进行归一化 (Dataset 参数)
   normalize_snp: false     # SNP已经是独热编码，通常不需要再归一化 (Dataset 参数)
   normalize_phenotype: true # 是否对表型进行归一化 (Dataset 参数)
@@ -80,7 +80,7 @@ checkpoint:
   monitor: 'val_pearson_corr_epoch'
   mode: 'max'
   every_n_epochs: 1
-  dirpath: '/home/data/biofish/yjn/workspace/deep GS/Whisperer_of_DNA-master/output/blackcarp/blackcarp_finetune_cv/blackcarp_{seed}'
+  dirpath: '/home/data/biofish/yjn/workspace/MTEAN/output/blackcarp/blackcarp_finetune_cv/blackcarp_{seed}'
   filename: '{epoch}-{val_pearson_corr_epoch:.4f}'
   save_last: true  # 保存最后一个模型，便于恢复训练
   

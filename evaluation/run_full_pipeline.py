@@ -22,7 +22,7 @@ warnings.filterwarnings('ignore')
 # ========== 配置 ==========
 SEEDS = [1, 2, 3]
 FOLDS = [0, 1, 2, 3, 4]
-TRAINVAL_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_trainval.h5"
+TRAINVAL_H5 = "data/blackcarp499/processed/blackcarp_allele10_trainval.h5"
 PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
 TRAINVAL_SAMPLES_FILE = "data/blackcarp499/trainval_samples.txt"
 OUT_BASE = "evaluation/blackcarp"

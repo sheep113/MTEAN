@@ -24,7 +24,7 @@ from minepy import MINE
 from sklearn.model_selection import StratifiedShuffleSplit
 
 
-H5_FILE = "output/blackcarp/blackcarp_preprocessed 398w.h5"
+H5_FILE = "data/blackcarp499/processed/blackcarp_full_398w.h5"
 
 PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
 

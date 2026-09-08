@@ -4,9 +4,9 @@ import sys
 import h5py, pandas as pd, numpy as np
 from pathlib import Path
 
-FULL_H5 = "output/blackcarp/blackcarp_preprocessed 398w.h5"
-SNP_INFO = "output/blackcarp/blackcarp_preprocessed 398w"
-OUT_DIR = "output/blackcarp"
+FULL_H5 = "data/blackcarp499/processed/blackcarp_full_398w.h5"
+SNP_INFO = "data/blackcarp499/processed/blackcarp_full_398w.snp_info.tsv"
+OUT_DIR = "data/blackcarp499/processed"
 SNP_LIST = "data/blackcarp499/chip_candidates_seed43.txt"   # 修改为你的列表路径
 
 def main():
@@ -22,7 +22,7 @@ def main():
     with h5py.File(FULL_H5, 'r') as src:
         geno = src['features/genotype_features'][:][idx, :, :]
         pos  = src['features/position_features'][:][idx, :]
-        with h5py.File(f"{OUT_DIR}/blackcarp_preprocessed_full.h5", 'w') as dst:
+        with h5py.File(f"{OUT_DIR}/blackcarp_selected_full.h5", 'w') as dst:
             dst.create_dataset('features/genotype_features', data=geno)
             dst.create_dataset('features/position_features', data=pos)
             dst.create_dataset('phenotypes', data=src['phenotypes'][:])
@@ -30,7 +30,7 @@ def main():
             dst.create_dataset('sample_ids', data=src['sample_ids'][:])
             if 'phenotypes_na_mask' in src:
                 dst.create_dataset('phenotypes_na_mask', data=src['phenotypes_na_mask'][:])
-    print("全量HDF5文件已生成: output/blackcarp/blackcarp_preprocessed_full.h5")
+    print(f"全量HDF5文件已生成: {OUT_DIR}/blackcarp_selected_full.h5")
 
 if __name__ == "__main__":
     main()

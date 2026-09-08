@@ -16,7 +16,7 @@ torch.backends.cudnn.enabled = False
 ROOT = Path.cwd()
 os.chdir(ROOT)
 
-TEST_H5 = "output/blackcarp/blackcarp_preprocessed_fixed_test.h5"
+TEST_H5 = "data/blackcarp499/processed/blackcarp_allele10_test.h5"
 MODEL_CONFIG = "config/model_config_blackcarp.json"
 PHENO_FILE = "data/blackcarp499/phongraph_new.tsv"
 TRAINVAL_SAMPLES = "data/blackcarp499/trainval_samples.txt"

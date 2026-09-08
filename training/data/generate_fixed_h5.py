@@ -6,8 +6,8 @@
 使用项目统一的 10 维碱基组合编码，
 生成：
 
-1. blackcarp_preprocessed_fixed_trainval.h5
-2. blackcarp_preprocessed_fixed_test.h5
+1. blackcarp_allele10_trainval.h5
+2. blackcarp_allele10_test.h5
 """
 
 import os
@@ -60,17 +60,17 @@ TEST_SAMPLES = (
 )
 
 OUT_DIR = (
-    "output/blackcarp"
+    "data/blackcarp499/processed"
 )
 
 OUT_TRAINVAL_H5 = os.path.join(
     OUT_DIR,
-    "blackcarp_preprocessed_fixed_trainval.h5"
+    "blackcarp_allele10_trainval.h5"
 )
 
 OUT_TEST_H5 = os.path.join(
     OUT_DIR,
-    "blackcarp_preprocessed_fixed_test.h5"
+    "blackcarp_allele10_test.h5"
 )
 
 
