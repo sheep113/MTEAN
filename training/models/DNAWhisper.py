@@ -186,6 +186,50 @@ class DNAWhisper(pl.LightningModule):
         self.primary_pearson_factor = primary_loss_config.get("pearson_factor", 1.0)
         self.primary_reduction = primary_loss_config.get("reduction", "mean")
 
+        # === MTEAN MIXED TASK CONFIG V1 BEGIN ===
+        mixed_cfg = self.hparams.config.get("mixed_task_loss", {})
+        self.mixed_task_enabled = bool(mixed_cfg.get("enabled", False))
+        self.mixed_binary_traits = list(mixed_cfg.get("binary_traits", []))
+        self.mixed_regression_traits = list(mixed_cfg.get("regression_traits", []))
+        self.mixed_task_weights = dict(mixed_cfg.get("task_weights", {}))
+        self.mixed_binary_loss = str(mixed_cfg.get("binary_loss", "bce_with_logits")).lower()
+        self.mixed_regression_loss = str(mixed_cfg.get("regression_loss", "mse")).lower()
+
+        self.mixed_binary_indices = []
+        self.mixed_regression_indices = []
+
+        if self.mixed_task_enabled:
+            all_traits = list(self.phenotype_names)
+            configured = self.mixed_binary_traits + self.mixed_regression_traits
+
+            missing = [x for x in configured if x not in all_traits]
+            if missing:
+                raise ValueError(f"Mixed-task traits not found in phenotype_name: {missing}; available={all_traits}")
+
+            overlap = set(self.mixed_binary_traits) & set(self.mixed_regression_traits)
+            if overlap:
+                raise ValueError(f"Traits cannot be both binary and regression: {sorted(overlap)}")
+
+            if set(configured) != set(all_traits) or len(configured) != len(all_traits):
+                raise ValueError(
+                    f"Mixed-task config must classify every phenotype exactly once. "
+                    f"phenotypes={all_traits}, configured={configured}"
+                )
+
+            self.mixed_binary_indices = [all_traits.index(x) for x in self.mixed_binary_traits]
+            self.mixed_regression_indices = [all_traits.index(x) for x in self.mixed_regression_traits]
+
+            if self.mixed_binary_loss != "bce_with_logits":
+                raise ValueError(f"Unsupported binary loss: {self.mixed_binary_loss}")
+            if self.mixed_regression_loss != "mse":
+                raise ValueError(f"Unsupported regression loss: {self.mixed_regression_loss}")
+
+            print(
+                f"✅ MIXED TASK ENABLED | binary={self.mixed_binary_traits} -> BCEWithLogits | "
+                f"regression={self.mixed_regression_traits} -> MSE"
+            )
+        # === MTEAN MIXED TASK CONFIG V1 END ===
+
         # Auxiliary Losses
         auxiliary_losses_config = loss_config.get("auxiliary_losses", {})
 
@@ -548,8 +592,72 @@ class DNAWhisper(pl.LightningModule):
         phenotype_dim = y_true.shape[1] 
 
         # ========== 关键修改：检查 primary_loss 是否启用 ==========
+        # === MTEAN MIXED TASK LOSS V1 BEGIN ===
         primary_loss_enabled = self.hparams.config.get("loss_config", {}).get("primary_loss", {}).get("enabled", True)
-        if primary_loss_enabled:
+
+        if primary_loss_enabled and getattr(self, "mixed_task_enabled", False):
+            if final_pred.ndim != 2 or y_true.ndim != 2 or final_pred.shape != y_true.shape:
+                raise ValueError(
+                    f"Mixed-task loss expects matching [B,E] tensors, got pred={final_pred.shape}, y={y_true.shape}"
+                )
+
+            task_losses = []
+            task_weights = []
+
+            # Binary traits: raw 0/1 target + BCEWithLogits
+            for idx in self.mixed_binary_indices:
+                trait = self.phenotype_names[idx]
+                target = y_true[:, idx].float()
+
+                valid_binary = ((target >= -1e-6) & (target <= 1.0 + 1e-6)).all()
+                if not bool(valid_binary):
+                    tmin = float(target.min().detach().cpu())
+                    tmax = float(target.max().detach().cpu())
+                    raise ValueError(
+                        f"Binary trait {trait} target is not raw 0/1: min={tmin}, max={tmax}. "
+                        "Check phenotype normalization."
+                    )
+
+                loss_i = F.binary_cross_entropy_with_logits(
+                    final_pred[:, idx].float(),
+                    target,
+                    reduction="mean"
+                )
+
+                weight_i = float(self.mixed_task_weights.get(trait, 1.0))
+                if weight_i <= 0:
+                    raise ValueError(f"Task weight must be >0 for {trait}, got {weight_i}")
+
+                task_losses.append(loss_i)
+                task_weights.append(weight_i)
+
+            # Continuous traits: standardized target + MSE
+            for idx in self.mixed_regression_indices:
+                trait = self.phenotype_names[idx]
+
+                loss_i = F.mse_loss(
+                    final_pred[:, idx].float(),
+                    y_true[:, idx].float(),
+                    reduction="mean"
+                )
+
+                weight_i = float(self.mixed_task_weights.get(trait, 1.0))
+                if weight_i <= 0:
+                    raise ValueError(f"Task weight must be >0 for {trait}, got {weight_i}")
+
+                task_losses.append(loss_i)
+                task_weights.append(weight_i)
+
+            if not task_losses:
+                raise RuntimeError("Mixed-task loss enabled but no task loss was created")
+
+            denom = float(sum(task_weights))
+            primary_loss = torch.stack([
+                loss * weight
+                for loss, weight in zip(task_losses, task_weights)
+            ]).sum() / denom
+
+        elif primary_loss_enabled:
             primary_loss_fn = self._get_loss_function(
                 self.primary_loss_type,
                 pearson_factor=self.primary_pearson_factor,
@@ -558,7 +666,9 @@ class DNAWhisper(pl.LightningModule):
             primary_loss = primary_loss_fn(final_pred, y_true)
         else:
             primary_loss = torch.tensor(0.0, device=final_pred.device, requires_grad=True)
+
         loss_requires_grad = primary_loss.requires_grad
+        # === MTEAN MIXED TASK LOSS V1 END ===
 
         total_deep_supervision_loss = torch.tensor(0.0, device=final_pred.device, requires_grad=loss_requires_grad)
         if self.ds_enabled and self.training:
@@ -834,6 +944,15 @@ class DNAWhisper(pl.LightningModule):
         # Concatenate all predictions and labels from the validation steps
         all_preds = torch.cat([out['preds'] for out in self.validation_step_outputs], dim=0)
         all_labels = torch.cat([out['labels'] for out in self.validation_step_outputs], dim=0)
+
+        # === MTEAN MIXED TASK METRIC V1 BEGIN ===
+        # BCE head 输出的是 logit；计算 validation Pearson 时转成概率。
+        if getattr(self, "mixed_task_enabled", False) and self.mixed_binary_indices:
+            all_preds = all_preds.clone()
+            all_preds[:, self.mixed_binary_indices] = torch.sigmoid(
+                all_preds[:, self.mixed_binary_indices]
+            )
+        # === MTEAN MIXED TASK METRIC V1 END ===
 
         # Clear the stored outputs
         self.validation_step_outputs.clear()

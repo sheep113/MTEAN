@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 import random
 
-import torch
 from torch.utils.data import Dataset, DataLoader, Subset
 import pytorch_lightning as pl
 from sklearn.model_selection import KFold
@@ -28,7 +27,7 @@ class WhisperDNADataset_onlySNP(Dataset):
         indices: Optional[np.ndarray] = None,
         phenotype_names: Optional[List[str]] = None,
         normalize_phenotype: bool = True, # 保留表型归一化
-        phenotype_norm_method: str = "minmax", # <--- 新增：表型归一化方法
+        phenotype_norm_method: str = "minmax",
         logger: Optional[logging.Logger] = None,
         snp_indices_to_keep: Optional[np.ndarray] = None,
         block_length: Optional[int] = None, # 保留 block_length 用于 SNP 对齐
@@ -52,14 +51,12 @@ class WhisperDNADataset_onlySNP(Dataset):
         self.indices = indices
         self.phenotype_names = phenotype_names
         self.normalize_phenotype = normalize_phenotype
-        self.phenotype_norm_method = phenotype_norm_method # <--- 新增
+        self.phenotype_norm_method = phenotype_norm_method
         self.logger = logger or logging.getLogger("WhisperDNADataset_onlySNP")
         self.snp_indices_to_keep = snp_indices_to_keep
         self.block_length = block_length
         self.seed = seed
 
-        # 移除与位置相关的属性
-        # self._position_stats = None
         self._phenotype_stats = None
         self.final_kept_snp_indices_original: Optional[np.ndarray] = None # 新增：存储最终保留的SNP原始索引
 
@@ -76,8 +73,6 @@ class WhisperDNADataset_onlySNP(Dataset):
             genotype_data_h5 = f['features/genotype_features']
             n_snps_original = genotype_data_h5.shape[0] # 获取原始SNP数量 [n_snps, n_samples, 10]
             self.logger.info(f"HDF5 文件中原始 SNP 数量: {n_snps_original}")
-            # current_snp_indices_original_ref 追踪相对于原始 HDF5 SNP 顺序的索引
-            # current_snp_indices_original_ref = np.arange(n_snps_original, dtype=int)
             genotype_data = genotype_data_h5[:] # 加载数据
             self.logger.info(f"原始基因型数据形状: {genotype_data.shape} [n_snps, n_samples, 10]")
             if genotype_data.ndim != 3 or genotype_data.shape[2] != 10:
@@ -86,11 +81,6 @@ class WhisperDNADataset_onlySNP(Dataset):
             # 初始化原始SNP索引跟踪数组
             self.current_snp_indices_original = np.arange(n_snps_original, dtype=int)
             self.logger.info(f"初始化原始SNP索引跟踪数组，大小: {len(self.current_snp_indices_original)}")
-
-            # --- 移除位置数据加载 ---
-            # position_data = f['features/position_features'][:]
-            # self.logger.info(f"位置特征形状: {position_data.shape}")
-            # --- 结束移除 ---
 
             phenotypes = f['phenotypes'][:]
             all_phenotype_names = []
@@ -118,14 +108,6 @@ class WhisperDNADataset_onlySNP(Dataset):
         self.n_samples, self.n_snps = self.genotype_data.shape[:2]
         self.logger.info(f"基因型数据已转置: {self.genotype_data.shape} [n_samples, n_snps, 10]")
 
-        # --- 移除位置数据相关处理 ---
-        # self.position_data = position_data
-        # if self.position_data.shape[0] != self.n_snps:
-        #     self.logger.warning(f"转置后的 SNP 数量 ({self.n_snps}) 与位置特征数量 ({self.position_data.shape[0]}) 不匹配！")
-        # self.position_dim = self.position_data.shape[1]
-        # self.logger.info(f"位置特征维度: {self.position_dim}")
-        # --- 结束移除 ---
-
         # --- 应用 MIC 筛选 (如果启用) ---
         if self.snp_indices_to_keep is not None:
             original_n_snps = self.n_snps
@@ -143,52 +125,30 @@ class WhisperDNADataset_onlySNP(Dataset):
                 # 更新原始索引跟踪数组
                 self.current_snp_indices_original = self.current_snp_indices_original[valid_snp_indices]
                 self.logger.info(f"MIC筛选后保留的原始SNP索引数量: {len(self.current_snp_indices_original)}")
-                # --- 移除位置数据过滤 ---
-                # self.position_data = self.position_data[valid_snp_indices, :]
-                # --- 结束移除 ---
                 self.n_snps = self.genotype_data.shape[1] # 更新 n_snps
                 self.logger.info(f"过滤后基因型数据形状: {self.genotype_data.shape}")
-                # self.logger.info(f"过滤后位置数据形状: {self.position_data.shape}") # 移除
             except Exception as e:
                 self.logger.error(f"应用 SNP 索引过滤时出错: {e}. 未执行 SNP 过滤。")
         # --- MIC 筛选结束 ---
 
-        # --- 随机丢弃 SNP 以对齐 Block_length (保持不变) ---
-        if self.block_length is not None and self.block_length > 0 and self.n_snps > 0:
-            num_snps_to_drop = self.n_snps % self.block_length
-            if num_snps_to_drop > 0:
-                self.logger.info(f"当前 SNP 数量 ({self.n_snps}) 不是 Block_length ({self.block_length}) 的倍数。")
-                self.logger.info(f"将随机丢弃 {num_snps_to_drop} 个 SNP。")
-
-                if self.seed is not None:
-                    random.seed(self.seed)
-                    self.logger.debug(f"为 SNP 随机丢弃设置种子: {self.seed}")
-                else:
-                    self.logger.warning("未提供种子给 Dataset，SNP 随机丢弃将不可复现。")
-
-                indices_to_drop = set(random.sample(range(self.n_snps), num_snps_to_drop))
-                indices_to_keep_final = [i for i in range(self.n_snps) if i not in indices_to_drop]
-
-                if not indices_to_keep_final:
-                     self.logger.warning("随机丢弃后没有剩余的 SNP！请检查 Block_length 和 SNP 数量。")
-                else:
-                    self.genotype_data = self.genotype_data[:, indices_to_keep_final, :]
-                    # 更新原始索引跟踪数组
-                    self.current_snp_indices_original = self.current_snp_indices_original[indices_to_keep_final]
-                    self.logger.info(f"随机丢弃后保留的原始SNP索引数量: {len(self.current_snp_indices_original)}")
-                    # --- 移除位置数据丢弃 ---
-                    # self.position_data = self.position_data[indices_to_keep_final, :]
-                    # --- 结束移除 ---
-                    original_n_snps_before_drop = self.n_snps
-                    self.n_snps = self.genotype_data.shape[1] # 更新最终的 n_snps
-                    self.logger.info(f"随机丢弃 {num_snps_to_drop} 个 SNP 后，最终 SNP 数量: {self.n_snps}")
-                    if self.n_snps % self.block_length != 0:
-                         self.logger.error(f"错误：随机丢弃后 SNP 数量 ({self.n_snps}) 仍然不是 Block_length ({self.block_length}) 的倍数！")
+        # 不再为了 Block_length 删除 SNP。
+        # 完整 block 在模型中正常处理，尾部不足一个 block 的 SNP
+        # 作为最后一个 remainder block 单独处理。
+        if self.block_length is not None and self.block_length > 0:
+            remainder = self.n_snps % self.block_length
+            if remainder > 0:
+                full_blocks = self.n_snps // self.block_length
+                self.logger.info(
+                    f"SNP 数量 {self.n_snps}: "
+                    f"{full_blocks} 个完整 block × {self.block_length} "
+                    f"+ 1 个 remainder block × {remainder}。"
+                    f"不删除任何 SNP。"
+                )
             else:
-                self.logger.info(f"当前 SNP 数量 ({self.n_snps}) 已是 Block_length ({self.block_length}) 的倍数，无需丢弃。")
-        elif self.block_length is None:
-             self.logger.info("未提供 Block_length，跳过 SNP 数量对齐步骤。")
-        # --- 随机丢弃结束 ---
+                self.logger.info(
+                    f"SNP 数量 {self.n_snps} 可被 "
+                    f"Block_length={self.block_length} 整除，无 remainder block。"
+                )
 
         self.all_phenotype_names = all_phenotype_names
         self.all_phenotypes = phenotypes
@@ -203,11 +163,6 @@ class WhisperDNADataset_onlySNP(Dataset):
         # 保存最终保留的SNP索引
         self.final_kept_snp_indices_original = self.current_snp_indices_original
         self.logger.info(f"最终保留的SNP原始索引数量: {len(self.final_kept_snp_indices_original)}")
-
-        # --- 移除位置数据归一化调用 ---
-        # if self.normalize_position:
-        #     self._normalize_position_data()
-        # --- 结束移除 ---
 
         self._prepare_features()
 
@@ -322,12 +277,6 @@ class WhisperDNADataset_onlySNP(Dataset):
             self.phenotypes = self.phenotypes[valid_indices]
             self.n_samples = self.genotype_data.shape[0] # Update sample count
 
-    # --- 移除 _normalize_position_data 方法 ---
-    # def _normalize_position_data(self):
-    #     """对位置编码数据进行归一化，特别处理第2、3维语境归一化"""
-    #     ... (方法内容被移除) ...
-    # --- 结束移除 ---
-
     def _prepare_features(self):
         """准备输入特征 (仅 SNP 和表型)"""
         # SNP data is already loaded and potentially filtered/aligned
@@ -401,13 +350,6 @@ class WhisperDNADataset_onlySNP(Dataset):
         # 获取表型数据
         phenotype_data = self.normalized_phenotypes[idx] # Shape: [n_phenotypes]
 
-        # --- 移除位置数据获取和拼接 ---
-        # position_data = self.position_data_to_use # Shape: [n_snps, position_dim]
-        # dims_to_keep = np.arange(position_data.shape[1]) != 4
-        # position_data_filtered = position_data[:, dims_to_keep] # Shape: [n_snps, position_dim - 1]
-        # features = np.concatenate([snp_data, position_data_filtered], axis=1) # Shape: [n_snps, 10 + position_dim - 1]
-        # --- 结束移除 ---
-
         # 特征现在就是 SNP 数据
         features = snp_data # Shape: [n_snps, 10]
 
@@ -453,7 +395,6 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
         self.logger = logger or logging.getLogger("WhisperDNADataModule_onlySNP")
         self._phenotype_names_config = phenotype_names
 
-        # --- 从 model_config 获取 Block_length (保持不变) ---
         embedding_config = self.model_config.get('embedding', {})
         self.block_length = embedding_config.get('Block_length')
         if self.block_length is None:
@@ -465,7 +406,6 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
             self.logger.info(f"从模型配置中读取 Block_length: {self.block_length}")
         # --- 结束 ---
 
-        # --- 数据加载器配置 (保持不变) ---
         data_config = config.get('data', {})
         self.train_batch_size = data_config.get('batch_size', 32)
         self.val_batch_size = data_config.get('val_batch_size', self.train_batch_size)
@@ -475,15 +415,17 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
         self.shuffle_train = data_config.get('shuffle', True)
         # --- 结束 ---
 
-        # --- 移除位置相关配置 ---
-        # self.normalize_position = data_config.get('normalize_position', True)
-        # self.position_encoding_method = data_config.get('position_encoding_method', "transformer")
-        # --- 结束移除 ---
         self.normalize_phenotype = data_config.get('normalize_phenotype', True) # 保留表型归一化
-        self.phenotype_norm_method = data_config.get('phenotype_norm_method', "standard") # <--- 新增
+        self.phenotype_norm_method = data_config.get('phenotype_norm_method', "standard")
+
+        # === MTEAN MIXED TASK DATA CONFIG V1 BEGIN ===
+        mixed_cfg = self.model_config.get("mixed_task_loss", {})
+        self.mixed_task_enabled = bool(mixed_cfg.get("enabled", False))
+        self.mixed_binary_traits = list(mixed_cfg.get("binary_traits", []))
+        self.mixed_regression_traits = list(mixed_cfg.get("regression_traits", []))
+        # === MTEAN MIXED TASK DATA CONFIG V1 END ===
 
 
-        # --- 数据集拆分配置 (保持不变) ---
         split_config = config.get('training', {})
         self.train_ratio = split_config.get('train_ratio', 0.7)
         self.val_ratio = split_config.get('val_ratio', 0.15)
@@ -504,7 +446,6 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
         self.cv_fold_idx = split_config.get('cv_fold_idx', 0)
         # --- 结束 ---
 
-        # --- MIC 筛选配置 (保持不变) ---
         mic_config = config.get('mic_filtering', {})
         self.mic_enabled = mic_config.get('enabled', False)
         self.mic_file_path = mic_config.get('mic_file_path', None)
@@ -520,7 +461,6 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
-        # --- 结束添加 ---
 
     def prepare_data(self):
         """检查数据是否存在 (保持不变)"""
@@ -597,6 +537,79 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
                
 
             # 创建 Subset 对象（必须在标准化之后）
+            # === MTEAN MIXED TASK NORMALIZATION V1 BEGIN ===
+            if self.mixed_task_enabled:
+                if not self.normalize_phenotype:
+                    raise ValueError("Mixed-task V1 requires normalize_phenotype=True")
+
+                if self.phenotype_norm_method != "standard":
+                    raise ValueError(
+                        f"Mixed-task V1 currently requires phenotype_norm_method='standard', "
+                        f"got {self.phenotype_norm_method}"
+                    )
+
+                names = list(self._phenotype_names_config or [])
+                configured = self.mixed_binary_traits + self.mixed_regression_traits
+
+                if set(configured) != set(names) or len(configured) != len(names):
+                    raise ValueError(
+                        f"Mixed-task phenotype config mismatch: names={names}, configured={configured}"
+                    )
+
+                binary_indices = [names.index(x) for x in self.mixed_binary_traits]
+                regression_indices = [names.index(x) for x in self.mixed_regression_traits]
+
+                # Binary columns必须保持原始0/1
+                for trait, idx in zip(self.mixed_binary_traits, binary_indices):
+                    raw = self.dataset.phenotypes[:, idx]
+                    unique_vals = np.unique(raw)
+                    is_binary = np.all(
+                        np.isclose(unique_vals, 0.0) | np.isclose(unique_vals, 1.0)
+                    )
+
+                    if not is_binary:
+                        raise ValueError(
+                            f"Binary trait {trait} has non-0/1 values: {unique_vals[:20]}"
+                        )
+
+                    self.dataset.normalized_phenotypes[:, idx] = raw
+
+                # Regression columns必须仍是按当前fold训练集做z-score
+                if regression_indices:
+                    train_reg = self.dataset.normalized_phenotypes[
+                        self.train_indices
+                    ][:, regression_indices]
+
+                    reg_mean = np.mean(train_reg, axis=0)
+                    reg_std = np.std(train_reg, axis=0)
+
+                    if np.max(np.abs(reg_mean)) > 1e-4:
+                        raise RuntimeError(
+                            f"Regression fold mean is not ~0 after standardization: {reg_mean}"
+                        )
+
+                    if np.max(np.abs(reg_std - 1.0)) > 1e-3:
+                        raise RuntimeError(
+                            f"Regression fold std is not ~1 after standardization: {reg_std}"
+                        )
+
+                if self.dataset._phenotype_stats is None:
+                    self.dataset._phenotype_stats = {}
+
+                self.dataset._phenotype_stats["mixed_task"] = {
+                    "binary_traits": list(self.mixed_binary_traits),
+                    "regression_traits": list(self.mixed_regression_traits),
+                    "binary_raw_01": True,
+                    "regression_standardized": True,
+                }
+
+                self.logger.info(
+                    f"✅ Mixed-task phenotype normalization: "
+                    f"binary raw={self.mixed_binary_traits}, "
+                    f"regression z-score={self.mixed_regression_traits}"
+                )
+            # === MTEAN MIXED TASK NORMALIZATION V1 END ===
+
             if self.train_indices is not None and len(self.train_indices) > 0:
                 self.train_dataset = Subset(self.dataset, self.train_indices)
                 self.logger.info(f"已创建 train_dataset (大小: {len(self.train_dataset)})")
@@ -651,40 +664,54 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
             return
 
         local_indices = np.arange(n_samples_after_na)
-        np.random.seed(self.seed)
-        np.random.shuffle(local_indices)
 
-        test_size = int(np.floor(n_samples_after_na * self.test_ratio))
-        val_size = int(np.floor(n_samples_after_na * self.val_ratio))
-        train_size = n_samples_after_na - test_size - val_size
+        if self.use_cv_folds:
+            # CV 模式：不进行预先 train/val/test 比例拆分。
+            # 全部有效样本直接交给外部 CV CSV；
+            # 若 CSV 不存在，则内部 KFold 也使用全部有效样本。
+            initial_train_indices = local_indices
+            initial_val_indices = np.array([], dtype=int)
+            self.test_indices = np.array([], dtype=int)
 
-        # Adjust sizes if any split becomes zero or negative but should not be
-        if train_size <= 0 or val_size <= 0 or test_size <= 0:
-            self.logger.warning(f"计算的拆分大小包含零或负数 (train={train_size}, val={val_size}, test={test_size})。请检查比例或样本数量。将尝试调整。")
-            if n_samples_after_na > 0:
-                # Ensure test and val have at least 1 sample if their ratios > 0
-                test_size = max(1, test_size) if self.test_ratio > 0 else 0
-                val_size = max(1, val_size) if self.val_ratio > 0 else 0
-                # Recalculate train size, potentially reducing test/val if train becomes <= 0
-                if n_samples_after_na - test_size - val_size <= 0:
-                    test_size = max(0, test_size - 1) if test_size > 0 else 0 # Reduce test first
-                    if n_samples_after_na - test_size - val_size <= 0 and val_size > 0:
-                        val_size = max(0, val_size - 1) # Then reduce val if needed
-                train_size = n_samples_after_na - test_size - val_size
-                if train_size <= 0:
-                    self.logger.error("无法创建有效的训练集拆分。所有集合将为空。")
-                    train_size, val_size, test_size = 0, 0, 0
+            self.logger.info(
+                f"CV 模式：跳过预先比例拆分，"
+                f"全部 {n_samples_after_na} 个有效样本交由交叉验证划分。"
+            )
+        else:
+            np.random.seed(self.seed)
+            np.random.shuffle(local_indices)
 
-        initial_train_indices = local_indices[:train_size]
-        initial_val_indices = local_indices[train_size: train_size + val_size]
-        self.test_indices = local_indices[train_size + val_size:]
+            test_size = int(np.floor(n_samples_after_na * self.test_ratio))
+            val_size = int(np.floor(n_samples_after_na * self.val_ratio))
+            train_size = n_samples_after_na - test_size - val_size
 
-        self.logger.info(f"初始随机拆分: 训练 {len(initial_train_indices)}, 验证 {len(initial_val_indices)}, 测试 {len(self.test_indices)}")
+            # Adjust sizes if any split becomes zero or negative but should not be
+            if train_size <= 0 or val_size <= 0 or test_size <= 0:
+                self.logger.warning(f"计算的拆分大小包含零或负数 (train={train_size}, val={val_size}, test={test_size})。请检查比例或样本数量。将尝试调整。")
+                if n_samples_after_na > 0:
+                    # Ensure test and val have at least 1 sample if their ratios > 0
+                    test_size = max(1, test_size) if self.test_ratio > 0 else 0
+                    val_size = max(1, val_size) if self.val_ratio > 0 else 0
+                    # Recalculate train size, potentially reducing test/val if train becomes <= 0
+                    if n_samples_after_na - test_size - val_size <= 0:
+                        test_size = max(0, test_size - 1) if test_size > 0 else 0 # Reduce test first
+                        if n_samples_after_na - test_size - val_size <= 0 and val_size > 0:
+                            val_size = max(0, val_size - 1) # Then reduce val if needed
+                    train_size = n_samples_after_na - test_size - val_size
+                    if train_size <= 0:
+                        self.logger.error("无法创建有效的训练集拆分。所有集合将为空。")
+                        train_size, val_size, test_size = 0, 0, 0
+
+            initial_train_indices = local_indices[:train_size]
+            initial_val_indices = local_indices[train_size: train_size + val_size]
+            self.test_indices = local_indices[train_size + val_size:]
+
+            self.logger.info(f"初始随机拆分: 训练 {len(initial_train_indices)}, 验证 {len(initial_val_indices)}, 测试 {len(self.test_indices)}")
 
         # --- 交叉验证划分（优先使用外部 CSV 文件） ---
         if self.use_cv_folds:
             import pandas as pd
-            cv_file = f"data/blackcarp499/cv_splits_{self.seed}.csv"
+            cv_file = self.h5_file_path.parent.parent / f"cv_splits_{self.seed}.csv"
             if Path(cv_file).exists():
                 self.logger.info(f"从外部文件加载交叉验证划分: {cv_file}")
                 cv = pd.read_csv(cv_file)
@@ -720,7 +747,6 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
             self.logger.info("未使用 K 折交叉验证。")
         # --- 结束交叉验证划分 ---
 
-        # Final checks for empty sets or overlaps (保持不变)
         if self.train_indices is None or self.val_indices is None or self.test_indices is None:
             raise RuntimeError("未能成功生成训练、验证或测试索引。")
         if len(self.train_indices) == 0:
@@ -739,15 +765,11 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
 
     def train_dataloader(self):
         """返回训练数据加载器 (使用 self.train_dataset)"""
-        # --- 修改：使用 self.train_dataset ---
         if self.train_dataset is None:
             self.logger.warning("train_dataset 未设置或为空，返回一个空的 DataLoader。")
             return DataLoader([]) # Return empty DataLoader
-        # --- 结束修改 ---
         return DataLoader(
-            # --- 修改：使用 self.train_dataset ---
             self.train_dataset,
-            # --- 结束修改 ---
             batch_size=self.train_batch_size,
             shuffle=self.shuffle_train,
             num_workers=self.num_workers,
@@ -757,15 +779,11 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
 
     def val_dataloader(self):
         """返回验证数据加载器 (使用 self.val_dataset)"""
-        # --- 修改：使用 self.val_dataset ---
         if self.val_dataset is None:
             self.logger.warning("val_dataset 未设置或为空，返回一个空的 DataLoader。")
             return DataLoader([]) # Return empty DataLoader
-        # --- 结束修改 ---
         return DataLoader(
-            # --- 修改：使用 self.val_dataset ---
             self.val_dataset,
-            # --- 结束修改 ---
             batch_size=self.val_batch_size,
             shuffle=False, # No need to shuffle validation data
             num_workers=self.num_workers,
@@ -774,15 +792,11 @@ class WhisperDNADataModule_onlySNP(pl.LightningDataModule):
 
     def test_dataloader(self):
         """返回测试数据加载器 (使用 self.test_dataset)"""
-        # --- 修改：使用 self.test_dataset ---
         if self.test_dataset is None:
             self.logger.warning("test_dataset 未设置或为空，返回一个空的 DataLoader。")
             return DataLoader([]) # Return empty DataLoader
-        # --- 结束修改 ---
         return DataLoader(
-            # --- 修改：使用 self.test_dataset ---
             self.test_dataset,
-            # --- 结束修改 ---
             batch_size=self.test_batch_size,
             shuffle=False, # No need to shuffle test data
             num_workers=self.num_workers,

@@ -57,9 +57,9 @@ DATASETS = {
               "carp_palaiokostas2019_allele10_test.h5",
 
         "checkpoint_root":
-            ROOT / "output/carp/mtean_head_v1_cv",
+            ROOT / "output/carp/mtean_carp_head_lr1e4_cv",
 
-        "checkpoint_prefix": "carp_head_v1",
+        "checkpoint_prefix": "carp_head_lr1e4",
 
         "status_dir":
             ROOT / "output/run_status/carp",
@@ -1084,7 +1084,7 @@ def evaluate_dataset(
     print("=" * 80)
     print(
         f"{dataset_name} | "
-        "3 SEEDS | 5-FOLD ENSEMBLE MEAN ± SD"
+        "1 SEED | 5-FOLD ENSEMBLE MEAN ± SD"
     )
     print("=" * 80)
 
@@ -1208,12 +1208,13 @@ def main():
         else "CPU"
     )
 
-    for dataset_name, cfg in DATASETS.items():
+    dataset_name = "Carp1259"
+    cfg = DATASETS[dataset_name]
 
-        evaluate_dataset(
-            dataset_name,
-            cfg,
-        )
+    evaluate_dataset(
+        dataset_name,
+        cfg,
+    )
 
     print()
     print("=" * 80)

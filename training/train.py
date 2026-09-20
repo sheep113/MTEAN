@@ -6,25 +6,21 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-import yaml
-import json
 import argparse
-import numpy as np
 import pandas as pd
 from pathlib import Path
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.strategies import DDPStrategy
 import torch
 torch.backends.cudnn.enabled = False
 import time
 import logging
-from torch.utils.data import Dataset, DataLoader, SequentialSampler
+from torch.utils.data import DataLoader, SequentialSampler
 import traceback
 import h5py
 
-from data.datamodule import WhisperDNADataModule
 from data.datamodule_onlySNP import WhisperDNADataModule_onlySNP
 from models.DNAWhisper import DNAWhisper
 from systems.dynamic_optimizer import DynamicTrainingCallback
@@ -366,11 +362,25 @@ def train(args):
         'n_splits': train_params.get('cv_n_splits', 5),
         'start_fold': train_params.get('cv_fold_idx', 0)
     }
-    # 处理 --fold 参数：如果指定了折号，则仅运行该折
+
+    # n_splits 始终表示真实的 K 值。
+    # --fold 只控制本次运行哪一折，不改变 K。
+    cv_end_fold = cv_params['n_splits']
+
     if args.fold is not None:
+        if not 0 <= args.fold < cv_params['n_splits']:
+            raise ValueError(
+                f"--fold 必须位于 0 ~ {cv_params['n_splits'] - 1}，"
+                f"当前收到: {args.fold}"
+            )
+
         cv_params['start_fold'] = args.fold
-        cv_params['n_splits'] = args.fold + 1
-        print(f"仅运行 Fold {args.fold}")
+        cv_end_fold = args.fold + 1
+
+        print(
+            f"仅运行 Fold {args.fold} "
+            f"（K={cv_params['n_splits']} 的第 {args.fold + 1} 折）"
+        )
 
     data_loader_params = {
         "batch_size": data_config.get("batch_size", 64),
@@ -437,8 +447,7 @@ def train(args):
 
     if cv_params['use_cv']:
         print(f"启用 K={cv_params['n_splits']} 折交叉验证")
-        results = []
-        for fold_idx in range(cv_params['start_fold'], cv_params['n_splits']):
+        for fold_idx in range(cv_params['start_fold'], cv_end_fold):
             print(f"\n--- 开始训练第 {fold_idx + 1}/{cv_params['n_splits']} 折 ---")
 
             current_training_config = training_config.copy()
@@ -554,22 +563,27 @@ def train(args):
             train_time = time.time() - start_time
             print(f"模型训练完成 (折 {fold_idx}), 耗时 {train_time:.2f} 秒 ({train_time/60:.2f} 分钟)")
 
-            print(f"开始测试模型 (折 {fold_idx})...")
+            # 获取当前 fold 的最佳 checkpoint。
+            # CV 阶段只有 train/val，不调用 independent test。
             best_ckpt_path = checkpoint_callback.best_model_path
+
             if not best_ckpt_path:
-                print(f"警告 (折 {fold_idx}): 未找到最佳模型检查点路径，将尝试使用最后一个检查点。")
+                print(
+                    f"警告 (折 {fold_idx}): 未找到最佳模型检查点，"
+                    f"将使用最后一个检查点。"
+                )
                 best_ckpt_path = checkpoint_callback.last_model_path
 
             if best_ckpt_path:
-                print(f"使用检查点进行测试: {best_ckpt_path}")
-                test_results_list = trainer.test(model=model, datamodule=datamodule, ckpt_path=best_ckpt_path)
-                if test_results_list:
-                    print(f"模型测试完成 (折 {fold_idx}). 测试结果: {test_results_list[0]}")
-                    results.append(test_results_list[0])
-                else:
-                    print(f"模型测试完成 (折 {fold_idx})，但未返回结果。")
+                print(
+                    f"当前 Fold {fold_idx} 最佳检查点: "
+                    f"{best_ckpt_path}"
+                )
             else:
-                 print(f"错误 (折 {fold_idx}): 无法找到任何检查点进行测试。跳过测试。")
+                print(
+                    f"错误 (折 {fold_idx}): "
+                    f"未找到 best 或 last checkpoint。"
+                )
 
             if trainer.is_global_zero:
                 if best_ckpt_path:
@@ -583,7 +597,7 @@ def train(args):
                         output_dir = fold_log_dir
                         print(f"预测结果将保存至: {output_dir}")
 
-                        for pred_stage_for_weights in ['train', 'val', 'test']:
+                        for pred_stage_for_weights in ['train', 'val']:
                             print(f"  正在处理阶段: {pred_stage_for_weights}")
                             save_predictions_and_weights(
                                 model=model_to_predict,
@@ -595,26 +609,17 @@ def train(args):
                                 collate_fn=collate_fn,
                                 trainer_config=predict_trainer_config
                             )
-                        print(f"所有预测和池化权重保存完成 (折 {fold_idx + 1})。")
+                        print(
+                            f"Fold {fold_idx} 的 train/val "
+                            f"预测和池化权重保存完成。"
+                        )
                     except Exception as e:
                         print(f"错误 (折 {fold_idx}, Rank {trainer.global_rank}): 在加载模型或保存预测结果时发生错误: {e}")
                         traceback.print_exc()
                 else:
                     print(f"警告 (折 {fold_idx}, Rank {trainer.global_rank}): 由于未找到最佳检查点，跳过保存预测结果。")
 
-        print("\n--- K 折交叉验证完成 ---")
-        if results:
-            avg_results = {}
-            all_keys = set().union(*(d.keys() for d in results))
-            for key in all_keys:
-                valid_values = [res[key] for res in results if key in res and isinstance(res[key], (int, float))]
-                if valid_values:
-                    avg_results[key] = sum(valid_values) / len(valid_values)
-            print("平均测试结果:")
-            for key, value in avg_results.items():
-                print(f"  {key}: {value:.4f}")
-        else:
-            print("没有收集到测试结果。")
+        print("\n--- K 折交叉验证训练完成 ---")
 
     else:
         # ========== 单次训练（预训练）==========

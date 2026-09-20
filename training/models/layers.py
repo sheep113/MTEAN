@@ -942,83 +942,230 @@ class EmbeddingLayer_onlySNP(nn.Module):
         
         return normed_features, seq_len
     
-    def _process_with_pooling(self, cnn_output: Tensor, batch_size: int, E: int, C: int, L: int) -> Tuple[Tensor, int, Optional[Tensor]]: 
-        """处理需要池化的情况 (L>1)
-        
-        Args:
-            cnn_output: CNN输出 [B, E*C, Seq]
-            batch_size: 批次大小
-            E: 表型数
-            C: 每个表型的特征数
-            L: 块长度
-            
-        Returns:
-            - 池化后的归一化特征 [B*N*E, C]
-            - 块数量
+    def _process_with_pooling(
+        self,
+        cnn_output: Tensor,
+        batch_size: int,
+        E: int,
+        C: int,
+        L: int
+    ) -> Tuple[Tensor, int, Optional[Tensor]]:
         """
-        # 获取序列长度并计算块数
+        将 SNP 序列划分为长度 L 的完整 block。
+        若尾部存在不足 L 的 SNP，则保留为最后一个 remainder block。
+
+        例如:
+            Seq = 28804, L = 32
+            -> 900 个长度 32 的完整 block
+            -> 1 个长度 4 的 remainder block
+            -> 总计 901 个 block
+
+        模型计算过程中不删除 SNP，也不对 remainder block 做输入 padding。
+        仅在 eval 导出 pooling weights 时，将 remainder 权重尾部补 0 到 L，
+        以保持统一的 HDF5 张量形状。
+        """
         seq_len = cnn_output.size(2)
-        if seq_len % L != 0:
-            raise ValueError(f"Input sequence length {seq_len} cannot be divided by Block_length {L}.")
-        num_blocks = seq_len // L
-        
-        # 将CNN输出重排为 [B*N, E*L, C] 用于块池化
-        # 每个块内，将L个序列位置的E种表型特征整合
-        cnn_output_blocked = rearrange(
-            cnn_output, 'b (e c) (n l) -> (b n) (e l) c', 
-            e=E, c=C, l=L, n=num_blocks
-        )
-        
-        # 应用层归一化
-        normed_pooling_input = self.ln_before_pooling(cnn_output_blocked, batch_size, num_blocks)
 
-        pooled_output_val = None
-        embedding_pooling_weights_to_return = None # Will be conditionally assigned
-        # 应用块池化 - 输出形状 [B*N, E, C]
-        # pooled_output, _ = self.block_pooling(normed_pooling_input)
-        if self.block_pooling is not None:
-            actual_weights_from_pooling = None
+        if seq_len <= 0:
+            raise ValueError(
+                f"Invalid sequence length for block pooling: {seq_len}"
+            )
+
+        num_full_blocks = seq_len // L
+        remainder = seq_len % L
+        num_blocks = num_full_blocks + (1 if remainder > 0 else 0)
+
+        if self.block_pooling is None:
+            raise RuntimeError(
+                "Block_length > 1 but block_pooling is None."
+            )
+
+        pooled_chunks = []
+        weight_chunks = []
+        weights_complete = not self.training
+
+
+        def run_pooling(
+            blocked_tensor: Tensor,
+            num_chunk_blocks: int
+        ):
+            """对一批同长度 block 执行 LN + pooling。"""
+
+            normed_input = self.ln_before_pooling(
+                blocked_tensor,
+                batch_size,
+                num_chunk_blocks
+            )
+
+            actual_weights = None
+
             if self.training and self.use_pooling_checkpointing:
-                pooled_output_tuple_ckpt = checkpoint(
-                    self.block_pooling, 
-                    normed_pooling_input,
-                    None, 
+                pooled_tuple = checkpoint(
+                    self.block_pooling,
+                    normed_input,
+                    None,
                     use_reentrant=self.use_reentrant,
-                    preserve_rng_state=True 
+                    preserve_rng_state=True
                 )
-                pooled_output_val = pooled_output_tuple_ckpt[0]
+                pooled = pooled_tuple[0]
 
-            else: 
-                pooled_output_val_direct, actual_weights_direct = self.block_pooling(normed_pooling_input, None) 
-                pooled_output_val = pooled_output_val_direct
-                actual_weights_from_pooling = actual_weights_direct
+            else:
+                pooled, actual_weights = self.block_pooling(
+                    normed_input,
+                    None
+                )
 
-            if not self.training and actual_weights_from_pooling is not None:
-                embedding_pooling_weights_to_return = actual_weights_from_pooling
-        else: 
-            if L > 1:
-                 warnings.warn("Block pooling is enabled (L > 1) but self.block_pooling is None. This is unexpected.")
-            pass 
+            return pooled, actual_weights
 
-        if pooled_output_val is None and L > 1: 
-            raise RuntimeError("pooled_output_val is None after pooling stage with L > 1. Check pooling configuration and logic.")
-        elif pooled_output_val is None and L == 1: 
-             pass 
 
-        # 新增: 应用池化后的LN
-        if pooled_output_val is not None and self.ln_after_pooling is not None:
-            pooled_output_val = self.ln_after_pooling(pooled_output_val)
-        elif pooled_output_val is None and L == 1: # Should not happen in this branch (L>1)
-             pass
+        # ====================================================
+        # A. 完整 block
+        # ====================================================
+        full_length = num_full_blocks * L
 
-        # 重排为 [B*N*E, C] 用于后续处理
-        normed_features = rearrange(
-            pooled_output_val, '(b n) e c -> (b n e) c', 
-            b=batch_size, n=num_blocks
+        if num_full_blocks > 0:
+            full_part = cnn_output[:, :, :full_length]
+
+            # 保持当前模型原有的 block 内排列方式不变
+            full_blocked = rearrange(
+                full_part,
+                'b (e c) (n l) -> (b n) (e l) c',
+                e=E,
+                c=C,
+                n=num_full_blocks,
+                l=L
+            )
+
+            full_pooled, full_weights = run_pooling(
+                full_blocked,
+                num_full_blocks
+            )
+
+            full_pooled = rearrange(
+                full_pooled,
+                '(b n) e c -> b n e c',
+                b=batch_size,
+                n=num_full_blocks
+            )
+
+            pooled_chunks.append(full_pooled)
+
+            if not self.training:
+                if full_weights is None:
+                    weights_complete = False
+                else:
+                    full_weights = rearrange(
+                        full_weights,
+                        '(b n) e l -> b n e l',
+                        b=batch_size,
+                        n=num_full_blocks,
+                        l=L
+                    )
+                    weight_chunks.append(full_weights)
+
+
+        # ====================================================
+        # B. remainder block
+        # ====================================================
+        if remainder > 0:
+            remainder_part = cnn_output[:, :, full_length:]
+
+            # [B, E*C, R] -> [B, E*R, C]
+            remainder_blocked = rearrange(
+                remainder_part,
+                'b (e c) r -> b (e r) c',
+                e=E,
+                c=C,
+                r=remainder
+            )
+
+            remainder_pooled, remainder_weights = run_pooling(
+                remainder_blocked,
+                1
+            )
+
+            # [B, E, C] -> [B, 1, E, C]
+            remainder_pooled = remainder_pooled.unsqueeze(1)
+            pooled_chunks.append(remainder_pooled)
+
+            if not self.training:
+                if remainder_weights is None:
+                    weights_complete = False
+                else:
+                    # 实际模型只计算 R 个 SNP。
+                    # 这里仅为导出统一形状补 0 到长度 L。
+                    # [B,E,R] -> [B,E,L]
+                    remainder_weights = F.pad(
+                        remainder_weights,
+                        (0, L - remainder),
+                        mode='constant',
+                        value=0.0
+                    )
+
+                    # [B,E,L] -> [B,1,E,L]
+                    weight_chunks.append(
+                        remainder_weights.unsqueeze(1)
+                    )
+
+
+        # ====================================================
+        # C. 合并完整 block 和 remainder block
+        # ====================================================
+        pooled_output = torch.cat(
+            pooled_chunks,
+            dim=1
         )
-        
-        return normed_features, num_blocks, embedding_pooling_weights_to_return
-    
+        # [B, N, E, C]
+
+        pooled_output = rearrange(
+            pooled_output,
+            'b n e c -> (b n) e c'
+        )
+
+        # 与原实现一致：pooling 后进行 LayerNorm
+        if self.ln_after_pooling is not None:
+            pooled_output = self.ln_after_pooling(
+                pooled_output
+            )
+
+        normed_features = rearrange(
+            pooled_output,
+            '(b n) e c -> (b n e) c',
+            b=batch_size,
+            n=num_blocks
+        )
+
+
+        # ====================================================
+        # D. eval 模式下统一 pooling weights
+        # ====================================================
+        embedding_pooling_weights_to_return = None
+
+        if (
+            not self.training
+            and weights_complete
+            and len(weight_chunks) == len(pooled_chunks)
+        ):
+            all_weights = torch.cat(
+                weight_chunks,
+                dim=1
+            )
+            # [B, N, E, L]
+
+            embedding_pooling_weights_to_return = rearrange(
+                all_weights,
+                'b n e l -> (b n) e l'
+            )
+            # 保持原 predict/save 接口:
+            # [B*N, E, L]
+
+        return (
+            normed_features,
+            num_blocks,
+            embedding_pooling_weights_to_return
+        )
+
+
     def _compute_aux_loss(self, normed_features: Tensor, batch_size: int, num_blocks: int) -> Tensor:
         """计算辅助损失投影
         

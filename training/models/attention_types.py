@@ -32,7 +32,6 @@ try:
     HAS_XFORMERS = True
 except ImportError:
     HAS_XFORMERS = False
-    warnings.warn("未安装xformers。高效注意力变体将回退到标准实现。安装方法: pip install xformers")
 
 # 基类 - 保持API兼容性
 class BaseAttention(nn.Module):
@@ -405,9 +404,18 @@ class FlashAttention2(BaseAttention):
                              warnings.warn(f"查询序列长度 ({Nq}) 大于掩码/键序列长度 ({Nk})，FlashAttention2变长模式将只考虑掩码覆盖的键。")
                         mask_q = mask_bool[:, :Nq]
 
-                        q_unpad, indices_q, cu_seqlens_q, max_seqlen_q_ = unpad_input(q_input, mask_q)
-                        k_unpad, indices_k, cu_seqlens_k, max_seqlen_k_ = unpad_input(k_proj, mask_bool)
-                        v_unpad, _, _, _ = unpad_input(v_proj, mask_bool)
+                        # flash-attn 新版本的 unpad_input 会返回 5 个值，
+                        # 旧版本通常返回 4 个值。
+                        # 使用 *_ 兼容两种 API，只取真正需要的前 4 项。
+                        q_unpad, indices_q, cu_seqlens_q, max_seqlen_q_, *_ = unpad_input(
+                            q_input, mask_q
+                        )
+                        k_unpad, indices_k, cu_seqlens_k, max_seqlen_k_, *_ = unpad_input(
+                            k_proj, mask_bool
+                        )
+                        v_unpad, *_ = unpad_input(
+                            v_proj, mask_bool
+                        )
 
                         if q_unpad is None or k_unpad is None or v_unpad is None:
                              warnings.warn("FlashAttention2 unpad_input 返回 None (可能由于全零掩码)，回退到标准实现。")
