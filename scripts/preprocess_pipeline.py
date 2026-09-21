@@ -205,8 +205,8 @@ class PreprocessPipeline:
             from config.config import Config
             try:
                 # 从配置文件加载模型配置
-                model_config_path = str(self.config_path / "model_configblackcarp.json")
-                preprocess_config_path = str(self.config_path / "preprocessingblackcarp_config.json")
+                model_config_path = str(self.config_path / "model_config_blackcarp.json")
+                preprocess_config_path = str(self.config_path / "preprocessing_config.json")
                 full_config = Config.from_json(preprocess_config_path, model_config_path)
                 
                 # 确定分区大小
