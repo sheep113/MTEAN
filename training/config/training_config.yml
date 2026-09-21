@@ -39,7 +39,7 @@ checkpoint:
   monitor: val_pearson_corr_epoch
   mode: max
   every_n_epochs: 1
-  dirpath: /home/data/biofish/yjn/workspace/MTEAN/output_MTEANconfig_test/blackcarp/mtean_cv
+  dirpath: output/blackcarp/mtean_cv
   filename: '{epoch}-{val_pearson_corr_epoch:.4f}'
   save_last: true
 early_stopping:
@@ -52,7 +52,7 @@ logging:
   log_every_n_steps: 3
   project_name: MTEAN_blackcarp_cv
   experiment_name: blackcarp_{seed}
-  save_dir: logs0_MTEANconfig_test/
+  save_dir: logs0/
   log_gradient_norms: true
   gradient_norm_log_interval: 1
 dynamic_optimizer:
