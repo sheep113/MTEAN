@@ -34,3 +34,6 @@ causal-conv1d/
 # Local backup files
 *.bak_*
 path_backup_*/
+training/data/generate_external_dosage_h5_light.py
+training/data/generate_external_phongraph.py
+training/data/generate_external_train_test_split.py
