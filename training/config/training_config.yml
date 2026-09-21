@@ -1,160 +1,64 @@
-# ============================================================
-# MTEAN Black Carp
-# End-to-end supervised training from scratch
-# run_all.sh controls seed and fold
-# ============================================================
-
-
-# ------------------------------------------------------------
-# Training
-# ------------------------------------------------------------
 training:
-
   precision: bf16-mixed
-  tensor_cores: 'high'
-
-  accelerator: 'gpu'
-  devices: [0]
-
+  tensor_cores: high
+  accelerator: gpu
+  devices:
+  - 0
   max_epochs: 200
-
   accumulate_grad_batches: 1
   gradient_clip_val: 1
-
-  # 注意：
-  # 当前写成整数 1，Lightning 会把它解释成每 1 个 training batch 验证一次。
-  # 这里暂时保持原实验配置，不在本次“清理无用参数”中改变训练行为。
   val_check_interval: 1.0
-
-  # CV 模式下真正的 train/val 来自固定 cv_splits_{seed}.csv
-  # 这里保持 1/0/0，确保不额外划出内部 test。
   train_ratio: 1.0
   val_ratio: 0.0
   test_ratio: 0.0
-
   use_cv_folds: true
   cv_n_splits: 5
-
-
-# ------------------------------------------------------------
-# Gradient checkpointing
-# ------------------------------------------------------------
 gradient_checkpointing:
-
   enabled: true
-
   gfi_block: true
   encoder_block: true
-
   self_attention: false
   cross_attention: false
   ffn: true
-
   use_reentrant: false
-
   embedding_cnn_extractors: true
   embedding_block_pooling: true
-
-
-# ------------------------------------------------------------
-# Data
-# ------------------------------------------------------------
 data:
-
   batch_size: 32
   val_batch_size: 32
-
   num_workers: 4
   pin_memory: true
   shuffle: true
-
-  data_path: "data/blackcarp499/processed/blackcarp_allele10_trainval.h5"
-
+  data_path: data/blackcarp499/processed/blackcarp_allele10_trainval.h5
   normalize_phenotype: true
-  phenotype_norm_method: "standard"
-
-
-# ------------------------------------------------------------
-# Optimizer
-#
-# DNAWhisper.py 真正读取的是 name，而不是 type。
-# ------------------------------------------------------------
+  phenotype_norm_method: standard
 optimizer:
-
-  name: 'adamw'
-  learning_rate: 5.0e-5
+  name: adamw
+  learning_rate: 5.0e-05
   weight_decay: 0.1
-
-
-# ------------------------------------------------------------
-# Learning-rate scheduler
-#
-# DNAWhisper.py 真正读取：
-# scheduler.name
-# scheduler.params
-#
-# 当前 params 不指定 T_max：
-# 代码自动使用 trainer.estimated_stepping_batches，
-# 与你修改前程序“实际上运行的行为”保持一致。
-# ------------------------------------------------------------
 scheduler:
-
-  name: 'cosine'
+  name: cosine
   params: {}
-
-
-# ------------------------------------------------------------
-# Checkpoint
-# ------------------------------------------------------------
 checkpoint:
-
   save_top_k: 1
-
-  monitor: 'val_pearson_corr_epoch'
-  mode: 'max'
-
+  monitor: val_pearson_corr_epoch
+  mode: max
   every_n_epochs: 1
-
-  dirpath: '/home/data/biofish/yjn/workspace/MTEAN/output_MTEANconfig_test/blackcarp/mtean_cv'
+  dirpath: /home/data/biofish/yjn/workspace/MTEAN/output_MTEANconfig_test/blackcarp/mtean_cv
   filename: '{epoch}-{val_pearson_corr_epoch:.4f}'
-
   save_last: true
-
-
-# ------------------------------------------------------------
-# Early stopping
-# ------------------------------------------------------------
 early_stopping:
-
   enabled: true
-
-  monitor: 'val_pearson_corr_epoch'
+  monitor: val_pearson_corr_epoch
   patience: 50
-
-  mode: 'max'
+  mode: max
   min_delta: 0.001
-
-
-# ------------------------------------------------------------
-# Logging
-# ------------------------------------------------------------
 logging:
-
   log_every_n_steps: 3
-
-  project_name: 'MTEAN_blackcarp_cv'
-  experiment_name: 'blackcarp_{seed}'
-
-  save_dir: 'logs0_MTEANconfig_test/'
-
+  project_name: MTEAN_blackcarp_cv
+  experiment_name: blackcarp_{seed}
+  save_dir: logs0_MTEANconfig_test/
   log_gradient_norms: true
   gradient_norm_log_interval: 1
-
-
-# ------------------------------------------------------------
-# Dynamic optimizer
-# Currently disabled
-# ------------------------------------------------------------
 dynamic_optimizer:
-
   enabled: false

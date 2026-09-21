@@ -1,5 +1,4 @@
 {
-  "random_seed": 42,
   "precision": "float32",
   "embedding": {
     "input_type": "SNP",
@@ -127,11 +126,5 @@
         "weight": 0.01
       }
     }
-  },
-  "phenotype": {
-    "distribution": "gaussian",
-    "normalize": false,
-    "scaling_method": "standard",
-    "target_log_variance": 0
   }
 }
