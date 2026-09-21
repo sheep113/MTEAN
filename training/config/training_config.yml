@@ -1,4 +1,5 @@
 training:
+  use_cv_folds: true
   precision: bf16-mixed
   tensor_cores: high
   accelerator: gpu

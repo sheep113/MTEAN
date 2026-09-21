@@ -1,5 +1,4 @@
 {
-  "random_seed": 42,
   "precision": "float32",
   "embedding": {
     "input_type": "SNP",
@@ -55,9 +54,9 @@
             "v_projection_source": "encoder"
           },
           "MOE": {
-            "enabled": false,
+            "enabled": true,
             "experts_dims": 64,
-            "num_experts": 1,
+            "num_experts": 2,
             "exports_expansion_factor": 4,
             "exports_sharing": false,
             "capacity_factor": 1.0,
@@ -67,7 +66,7 @@
           "pooling": {
             "type": "self_attention",
             "head_dims": 64,
-            "num_heads": 1,
+            "num_heads": 2,
             "ffn_expansion_factor": 2,
             "dropout_rate": 0.1,
             "temperature": 1.0
@@ -127,11 +126,5 @@
         "weight": 0.01
       }
     }
-  },
-  "phenotype": {
-    "distribution": "gaussian",
-    "normalize": false,
-    "scaling_method": "standard",
-    "target_log_variance": 0
   }
 }
