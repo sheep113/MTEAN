@@ -1,0 +1,54 @@
+{
+  "name": "carp",
+  "traits": [
+    "SL"
+  ],
+  "SNPs": 15615,
+  "development_n": 500,
+  "test_n": 0,
+  "PCA": 8,
+  "parameters": 506179,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "backend": "position_first",
+  "cudnn": true,
+  "checkpoint_format": "semantic",
+  "pca_metadata": "asset_manifest.json",
+  "early_stopping_rule": "lightning_monitor",
+  "model": "model.json",
+  "training": "training.yml",
+  "data": "data/carp/processed/all_500_allele10.h5",
+  "pca_root": "data/carp/pca",
+  "cv_root": "data/carp",
+  "evaluation": {
+    "mode": "validation",
+    "data": null
+  },
+  "expected_final_model": "boundary_validSNP_v1",
+  "baseline_config": "baselines.json",
+  "data_availability": "Bundled fixed 500-individual analysis inputs, CV splits and PCA assets; original source files available from the cited publications",
+  "raw_input": {
+    "root": "data/carp/raw",
+    "metadata": "data/carp/snp_metadata.tsv",
+    "selected_ids": "data/carp/selection/sample_ids_500.txt",
+    "genotype_format": "tabular_dosage",
+    "genotype_file": "File_S4.txt",
+    "phenotype_file": "File_S2.txt",
+    "sample_id_column": "Id",
+    "missing_code": 3,
+    "marker_column": "Id",
+    "allele1_column": "Allele1",
+    "allele2_column": "Allele2",
+    "phenotype_separator": "\t"
+  }
+}

@@ -1,3 +1,5 @@
+# Modified for METAN portable release 2026-11-09.
+# METAN release helper; see NOTICE.
 """
 HDF5数据集工具 - 用于高效加载和处理预处理好的HDF5格式数据
 """

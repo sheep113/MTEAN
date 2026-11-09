@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "Please cite the associated manuscript and the original data publications when using this software."
+title: METAN
+type: software
+version: 0.2.0
+date-released: 2026-11-09
+license: Apache-2.0
+repository-code: https://github.com/sheep113/MTEAN

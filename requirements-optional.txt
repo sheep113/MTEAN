@@ -1,0 +1,8 @@
+-r requirements.txt
+flash-attn==2.8.3
+matplotlib==3.10.9
+lightgbm==4.7.0
+pandas-plink==2.3.2
+minepy==1.2.6
+# PLINK and R/ASReml are installed separately; ASReml requires a valid license.
+openpyxl==3.1.5

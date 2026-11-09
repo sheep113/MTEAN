@@ -1,39 +1,13 @@
-# Data
-/data/
-
-# Sensitive / species-specific evaluation data
-evaluation/blackcarp/
-
-# Training outputs
-output/
-logs0/
-runs/
-checkpoints/
-wandb/
-
-# Model weights
-*.pt
-*.pth
-*.ckpt
-
-# Python
 __pycache__/
 *.pyc
-*.pyo
-
-# IDE
-.vscode/
-.idea/
-
-# Logs / temp
-*.log
-*.tmp
-.DS_Store
-causal-conv1d/
-
-# Local backup files
-*.bak_*
-path_backup_*/
-training/data/generate_external_dosage_h5_light.py
-training/data/generate_external_phongraph.py
-training/data/generate_external_train_test_split.py
+.venv/
+.env
+run_logs/
+runs/
+*.ckpt
+*.pt
+*.pth
+private_audit/
+data/blackcarp/
+data/carp/raw/
+data/trout/raw/

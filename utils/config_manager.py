@@ -1,3 +1,4 @@
+# Modified for METAN portable release 2026-11-09.
 from __future__ import annotations
 
 import logging

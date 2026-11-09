@@ -1,3 +1,4 @@
+# Modified for METAN portable release 2026-11-09.
 from __future__ import annotations
 
 import numpy as np
@@ -58,7 +59,7 @@ class PlinkReader:
             fam_path = f"{plink_prefix}.fam"
             fam_df = pd.read_csv(
                 fam_path, 
-                sep='\s+', 
+                sep=r'\s+', 
                 header=None,
                 usecols=[0, 1],  # 只读取家族ID和个体ID
                 names=['FID', 'IID']
@@ -221,7 +222,7 @@ class PlinkReader:
                 fam_path = f"{plink_prefix}.fam"
                 fam_df = pd.read_csv(
                     fam_path, 
-                    sep='\s+', 
+                    sep=r'\s+', 
                     header=None,
                     usecols=[0, 1],
                     names=['FID', 'IID']
@@ -287,7 +288,7 @@ class PlinkReader:
             # 包含等位基因信息以便进行详细的基因型编码
             snp_info = pd.read_csv(
                 f"{plink_prefix}.bim",
-                sep='\s+',
+                sep=r'\s+',
                 header=None,
                 names=['chr', 'snp_id', 'genetic_dist', 'position', 'allele1', 'allele2'],
                 dtype={

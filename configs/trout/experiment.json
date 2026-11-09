@@ -1,0 +1,53 @@
+{
+  "name": "trout",
+  "traits": [
+    "End_Weight"
+  ],
+  "SNPs": 26068,
+  "development_n": 500,
+  "test_n": 0,
+  "PCA": 40,
+  "parameters": 545411,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "backend": "position_first",
+  "cudnn": true,
+  "checkpoint_format": "semantic",
+  "pca_metadata": "asset_manifest.json",
+  "early_stopping_rule": "lightning_monitor",
+  "model": "model.json",
+  "training": "training.yml",
+  "data": "data/trout/processed/all_500_allele10.h5",
+  "pca_root": "data/trout/pca",
+  "cv_root": "data/trout",
+  "evaluation": {
+    "mode": "validation",
+    "data": null
+  },
+  "expected_final_model": "boundary_validSNP_v1",
+  "baseline_config": "baselines.json",
+  "data_availability": "Bundled fixed 500-individual analysis inputs, CV splits and PCA assets; original source files available from the cited publications",
+  "raw_input": {
+    "root": "data/trout/raw",
+    "metadata": "data/trout/snp_metadata.tsv",
+    "selected_ids": "data/trout/selection/sample_ids_500.txt",
+    "genotype_format": "blup_compact",
+    "genotype_file": "GenoSRS_blup.txt",
+    "phenotype_file": "Phenotype.txt",
+    "sample_id_column": "Id",
+    "missing_code": 5,
+    "marker_column": "marker",
+    "allele1_column": "AlleleA",
+    "allele2_column": "AlleleB"
+  }
+}

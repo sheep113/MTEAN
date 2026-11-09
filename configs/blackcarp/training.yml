@@ -1,0 +1,60 @@
+training:
+  use_cv_folds: true
+  precision: bf16-mixed
+  tensor_cores: high
+  accelerator: gpu
+  devices:
+  - 0
+  max_epochs: 200
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1
+  val_check_interval: 1.0
+gradient_checkpointing:
+  enabled: true
+  gfi_block: true
+  encoder_block: true
+  self_attention: false
+  cross_attention: false
+  ffn: true
+  use_reentrant: false
+  embedding_cnn_extractors: true
+  embedding_block_pooling: true
+data:
+  batch_size: 32
+  val_batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  shuffle: true
+  data_path: data/blackcarp/processed/blackcarp_allele10_trainval.h5
+  normalize_phenotype: true
+  phenotype_norm_method: standard
+optimizer:
+  name: adamw
+  learning_rate: 8.0e-05
+  weight_decay: 0.03
+scheduler:
+  name: cosine
+  params: {}
+checkpoint:
+  save_top_k: 1
+  monitor: val_pearson_corr_epoch
+  mode: max
+  every_n_epochs: 1
+  dirpath: outputs/checkpoints
+  filename: '{epoch}-{val_pearson_corr_epoch:.4f}'
+  save_last: true
+early_stopping:
+  enabled: true
+  monitor: val_pearson_corr_epoch
+  patience: 50
+  mode: max
+  min_delta: 0.001
+logging:
+  log_every_n_steps: 3
+  project_name: METAN
+  experiment_name: configured_run
+  save_dir: outputs/logs
+  log_gradient_norms: true
+  gradient_norm_log_interval: 1
+dynamic_optimizer:
+  enabled: false

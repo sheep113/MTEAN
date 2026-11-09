@@ -1,0 +1,47 @@
+{
+  "name": "blackcarp",
+  "traits": [
+    "BW",
+    "LE"
+  ],
+  "SNPs": 28804,
+  "development_n": 424,
+  "test_n": 75,
+  "PCA": 20,
+  "parameters": 422486,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "backend": "legacy",
+  "cudnn": false,
+  "checkpoint_format": "plain",
+  "pca_metadata": "metadata.json",
+  "early_stopping_rule": "all_traits_strict",
+  "model": "model.json",
+  "training": "training.yml",
+  "data": "data/blackcarp/processed/blackcarp_allele10_trainval.h5",
+  "pca_root": "data/blackcarp/pca",
+  "cv_root": "data/blackcarp",
+  "evaluation": {
+    "mode": "holdout",
+    "data": "data/blackcarp/processed/blackcarp_allele10_test.h5",
+    "pca_root": "data/blackcarp/pca_holdout"
+  },
+  "expected_final_model": "boundary_validSNP_v1",
+  "baseline_config": "baselines.json",
+  "data_availability": "Private data supplied by the study data custodian",
+  "baseline_inputs": {
+    "genotype": "data/blackcarp/geno_fixed_for_python.csv",
+    "phenotype": "data/blackcarp/phenotypes.csv",
+    "holdout_ids": "data/blackcarp/test_samples.txt"
+  }
+}

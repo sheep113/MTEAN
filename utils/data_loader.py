@@ -1,3 +1,5 @@
+# Modified for METAN portable release 2026-11-09.
+# METAN release helper; see NOTICE.
 from __future__ import annotations
 
 import numpy as np

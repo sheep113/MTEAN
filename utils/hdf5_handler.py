@@ -1,3 +1,4 @@
+# Modified for METAN portable release 2026-11-09.
 from __future__ import annotations
 
 import numpy as np
@@ -98,7 +99,7 @@ class HDF5Handler:
         n_samples = feature_data.get("n_samples", genotype_features.shape[1])
         
         # 创建HDF5文件并保存数据
-        output_file = output_dir / "whisper_dna_dataset.h5"
+        output_file = output_dir / "METAN_dna_dataset.h5"
         self.logger.info(f"保存数据为HDF5格式: {output_file}")
         
         try:
@@ -190,7 +191,7 @@ class HDF5Handler:
             
             # 回退到NumPy保存方式
             self.logger.info("尝试使用NumPy格式分别保存数据...")
-            self._save_numpy_fallback(output_dir / "whisper_dna_dataset", feature_data, feature_stats)
+            self._save_numpy_fallback(output_dir / "METAN_dna_dataset", feature_data, feature_stats)
     
     def _save_numpy_fallback(self, output_path: Path, feature_data: Dict[str, Any], feature_stats: Dict[str, Any]) -> None:
         """

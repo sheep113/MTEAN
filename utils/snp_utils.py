@@ -1,3 +1,4 @@
+# Modified for METAN portable release 2026-11-09.
 # Description: SNP数据处理工具函数
 import numpy as np
 import pandas as pd

@@ -1,3 +1,4 @@
+# Modified for METAN portable release 2026-11-09.
 from pathlib import Path
 import logging
 import sys

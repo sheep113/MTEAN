@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "n_components": 8,
+  "seed": 3,
+  "fold": 4,
+  "binding": {
+    "run_id": "20261025_003955_07f199ab",
+    "seed": 3,
+    "fold": 4,
+    "n_components": 8,
+    "CV_SHA256": "73f4e8fac34444636941ccb454c3c8d1752ced545d2dfd0bcf4e3a719278c5fe",
+    "fit_IDs_SHA256": "1a83dc6d1853eb50be84a390f4dbf3eb3fea6720ee599cb006fcb2c07e931bab",
+    "validation_IDs_SHA256": "47f48e683eede6254948ff5917d35416c63dc9f419ea50e2a4bac3ffab77fb77",
+    "asset_manifest_SHA256": "7563798f300f56a0ff71303d323cb7ad29c0907822bba8b45679df4a8235236b"
+  },
+  "train_only_statistics_recomputed": true,
+  "all500_PCA_transform_max_abs_error": 1.8713378935331093e-06,
+  "relative_RMSE_by_PC": [
+    1.6172388433679167e-08,
+    1.845462081084607e-08,
+    1.6700189747591052e-08,
+    1.7617830608642815e-08,
+    1.7661309756255534e-08,
+    1.9216506412879388e-08,
+    1.7277014967762738e-08,
+    1.747561078440022e-08
+  ],
+  "signed_correlation_by_PC": [
+    0.9999999999999999,
+    0.9999999999999998,
+    0.9999999999999998,
+    1.0,
+    0.9999999999999997,
+    0.9999999999999997,
+    1.0,
+    1.0
+  ],
+  "PCA_numerical_tolerance": {
+    "rtol": 2e-05,
+    "atol": 0.0002,
+    "relative_RMSE_max": 1e-05,
+    "min_correlation": 0.9999999999
+  },
+  "PCA_samples_fitted": 400,
+  "validation_only_transformed": true,
+  "no_MTEAN_prediction": true
+}

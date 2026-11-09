@@ -1,0 +1,123 @@
+{
+  "random_seed": 1,
+  "embedding": {
+    "input_type": "SNP",
+    "input_dims": 10,
+    "Block_length": 32,
+    "CNN_Kernel": [
+      3,
+      5,
+      7,
+      9,
+      11
+    ],
+    "CNN_Dilation": [
+      1,
+      2,
+      3
+    ],
+    "CNN_layers": 1,
+    "dropout_rate": 0.3,
+    "position_encoding": true,
+    "activation": "gelu",
+    "aux_ffn_expansion_factor": 2,
+    "cnn_feature_groups": 2,
+    "cnn_path_output_channels": 3
+  },
+  "GFI_FormerBLOCKS": {
+    "num_blocks": 1,
+    "blocks": [
+      {
+        "name": "GFI_Block0",
+        "context_length": 32,
+        "encoder": {
+          "num_layers": 1,
+          "attention": {
+            "type": "flash_attention",
+            "hidden_dims": 64,
+            "num_heads": 4,
+            "dropout_rate": 0.1,
+            "temperature": 1.0
+          },
+          "ffn_sharing": false,
+          "ffn_expansion_factor": 2
+        },
+        "decoder": {
+          "num_layers": 1,
+          "cross_attention": {
+            "type": "standard",
+            "head_dims": 16,
+            "num_heads": 4,
+            "dropout_rate": 0.1,
+            "temperature": 1.0,
+            "v_projection_source": "encoder"
+          },
+          "MOE": {
+            "experts_dims": 64,
+            "num_experts": 2,
+            "exports_expansion_factor": 4,
+            "exports_sharing": false,
+            "capacity_factor": 1.0,
+            "dropout_rate": 0.1,
+            "aux_ffn_expansion_factor": 2
+          },
+          "pooling": {
+            "type": "self_attention",
+            "ffn_expansion_factor": 2,
+            "dropout_rate": 0.1,
+            "temperature": 1.0
+          }
+        }
+      }
+    ]
+  },
+  "output_layer": {
+    "phenotype_dim": 1,
+    "phenotype_name": [
+      "End_Weight"
+    ],
+    "hidden_expansion_dims": 4,
+    "activation": "linear",
+    "dropout_rate": 0.6
+  },
+  "loss_config": {
+    "primary_loss": {
+      "enabled": true,
+      "type": "mse",
+      "reduction": "mean"
+    },
+    "auxiliary_losses": {
+      "Deep_Supervision": {
+        "enabled": false
+      },
+      "PWCosSim": {
+        "enabled": false
+      },
+      "l1_regularization": {
+        "enabled": false
+      },
+      "correlation": {
+        "enabled": false
+      }
+    }
+  },
+  "phenotype": {
+    "distribution": "gaussian",
+    "target_log_variance": 0
+  },
+  "task_sharing_mode": "shared",
+  "embedding_layout_version": "position_first_v2",
+  "layout_species": "configured_population",
+  "layout_architecture_version": "growth500_cnn_capacity_v1",
+  "pca_aux_implementation_version": "METAN_pca_late_fusion_v1",
+  "pca_covariates": {
+    "enabled": true,
+    "n_components": 40,
+    "fusion": "concat",
+    "scores_root": "${PCA_ROOT}"
+  },
+  "boundary_handling_version": "valid_SNP_coverage_v1",
+  "layout_allowed_traits": [
+    "End_Weight"
+  ]
+}
